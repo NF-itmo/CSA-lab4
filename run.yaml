@@ -1,0 +1,15 @@
+limit: 2500
+memory_size: 0x1000
+port_mapped_io:
+  0: [(1, 'h'), (10, 'e'), (20, 'l'), (25, 'l'), (100, 'o')]
+result:
+  view: |
+    pmio-0-device-input: {pmio:0:input:sym}
+    pmio-3-device-input: {pmio:3:input:hex}
+    pmio-1-device-output: {pmio:1:output:dec}
+    pmio-1-device-output: {pmio:1:output:hex}
+  assert: |
+    pmio-0-device-input: "hello" >>> ""
+    pmio-3-device-input: [] >> []
+    pmio-1-device-output: [] >> [1, 2]
+    pmio-1-device-output: [] >> [0x1, 0x2]
