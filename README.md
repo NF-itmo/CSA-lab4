@@ -1,6 +1,7 @@
-# Лабораторная работа №4
-# "Процессор и транслятор к нему"
-Выполнил: Решетников Сергей Р3208
+# Лабораторная работа №4 "Процессор и транслятор к нему"
+[![Lint](https://github.com/NF-itmo/CSA-lab4/actions/workflows/lint.yaml/badge.svg)](https://github.com/NF-itmo/CSA-lab4/actions/workflows/lint.yaml)
+
+Выполнил: Решетников Сергей\
 Группа: P3208 
 
 # Задание
