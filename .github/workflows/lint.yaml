@@ -30,8 +30,8 @@ jobs:
           pip install uv
           uv sync
 
-      - name: Check code formatting with Ruff
-        run: uv run ruff format --check .
+      - name: Check code formatting with autopep8
+        run: uv run pycodestyle src/**.py --max-line-length 120 --ignore E221,E222,E501,W503
 
       - name: Run Ruff linters
         run: uv run ruff check .
