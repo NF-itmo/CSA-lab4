@@ -418,8 +418,10 @@ class InstructionLogFormatter:
         if opcode in {Opcode.PUSH, Opcode.POP} and len(args) == 2:
             mode_value, operand = args
 
-            try: mode = AddressingMode(mode_value).name
-            except ValueError: mode = f"UNKNOWN({mode_value})"
+            try:
+                mode = AddressingMode(mode_value).name
+            except ValueError:
+                mode = f"UNKNOWN({mode_value})"
 
             return f"mode={mode}, operand=0x{operand:x}"
 

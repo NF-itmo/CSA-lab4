@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 import re
-from Config import *
+from Config import (
+    DataElem, CodeElem, Opcode, Term,
+    AddressingMode, Registers, Args,
+    instruction_size,
+    INTERRUPT_COUNT
+)
 from typing import Optional, Self
 
 def to_bytes(value: int, size: int) -> bytes:
@@ -60,7 +65,7 @@ class DataMemory:
         size: Optional[int] = None
     ) -> int:
         if values is None and size is None:
-            raise ValueError(f"Size or values array must be defined!")
+            raise ValueError("Size or values array must be defined!")
         if size is not None and size < 0:
             raise ValueError(f"Block size must be non-negative, got: {size}")
         
@@ -270,8 +275,10 @@ class Translator:
             Returns:
                 Optinal[int] - None если токен невалиден
         '''
-        try: return int(token)
-        except ValueError: return None
+        try:
+            return int(token)
+        except ValueError:
+            return None
 
     def _has_tokens(self) -> bool:
         '''
