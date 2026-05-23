@@ -1729,7 +1729,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     cu = CU()
-    cu.load(read_file(args.data), read_file(args.data))
+    cu.load(read_file(args.data), read_file(args.code))
 
     cu.run()
     cu.print_external_device_buffers()

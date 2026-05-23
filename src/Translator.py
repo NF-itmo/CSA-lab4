@@ -801,7 +801,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print(f"Programm binary will be saved to: {args.code_output}")
-    print(f"Data binary will be saved to: {args.code_output}")
+    print(f"Data binary will be saved to: {args.data_output}")
 
     code, data = Translator(read_file(args.source))()
 
