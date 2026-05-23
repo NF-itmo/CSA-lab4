@@ -7,6 +7,8 @@ from Config import (
     INTERRUPT_COUNT,
     instruction_size,
 )
+import argparse
+
 
 DATA_WORD_SIZE = 5
 
@@ -26,7 +28,7 @@ class Viewer:
         )
 
     @staticmethod
-    def read_file(path: str) -> bytes:
+    def read_file(path: Path) -> bytes:
         with open(path, "rb") as file_obj:
             return file_obj.read()
 
@@ -36,7 +38,7 @@ class Viewer:
             return []
 
         return [
-            from_bytes(data[offset : offset + DATA_WORD_SIZE])
+            from_bytes(data[offset: offset + DATA_WORD_SIZE])
             for offset in range(0, len(data), DATA_WORD_SIZE)
         ]
 
@@ -47,7 +49,7 @@ class Viewer:
                 f"Unexpected EOF while reading {context} at offset {self._ptr:#x}"
             )
 
-        chunk = self._program[self._ptr : next_ptr]
+        chunk = self._program[self._ptr: next_ptr]
         self._ptr = next_ptr
         return chunk
 
@@ -120,12 +122,12 @@ class Viewer:
 
 
 if __name__ == "__main__":
-    code_path = Path("/home/nf/Рабочий стол/итмо/ak_lab4/exec_code")
-    data_path = Path("/home/nf/Рабочий стол/итмо/ak_lab4/exec_data")
+    parser = argparse.ArgumentParser(description='Binary viewer')
+    parser.add_argument('-c', '--code', type=Path, required=True, help='Path to code memory dump')
+    parser.add_argument('-d', '--data', type=Path, required=True, help='Path to data memory dump')
+    args = parser.parse_args()
 
-    code = Viewer.read_file(str(code_path))
-    data = Viewer.read_file(str(data_path)) if data_path.exists() else b""
-
-    # print(code.hex())
+    code = Viewer.read_file(args.code)
+    data = Viewer.read_file(args.data) if args.data.exists() else b""
 
     Viewer(code, data)()

@@ -12,6 +12,8 @@ from Config import (
     INTERRUPT_COUNT,
 )
 from typing import Optional, Self
+import argparse
+from pathlib import Path
 
 
 def to_bytes(value: int, size: int) -> bytes:
@@ -716,7 +718,7 @@ class Translator:
         # Мапа операций над стеком
         stack_arith_map: dict[Term, Opcode] = {
             Term.PLS: Opcode.SPLS,
-            Term.MINUS: Opcode.SMIN,
+            Term.MIN: Opcode.SMIN,
             Term.DIV: Opcode.SDIV,
             Term.MUL: Opcode.SMUL,
         }
@@ -773,35 +775,35 @@ class Translator:
         data_bin = b"".join(to_bytes(elem.value, 5) for elem in self._data.collection)
         return code_bin, data_bin
 
-    def __call__(self) -> None:
+    def __call__(self) -> tuple[bytes, bytes]:
         self._parse_until()
-        code_bin, data_bin = self._to_binary()
 
-        with open("./exec_code", "wb") as file_obj:
-            file_obj.write(code_bin)
+        return self._to_binary()
 
-        with open("./exec_data", "wb") as file_obj:
-            file_obj.write(data_bin)
+
+def read_file(path: Path) -> str:
+    with open(path, "r") as file_obj:
+        return file_obj.read()
+
+
+def write_binary(path: Path, data: bytes) -> None:
+    with open(path, "wb") as file_obj:
+        file_obj.write(data)
 
 
 if __name__ == "__main__":
-    Translator(
-        """
-1 constant flag
+    parser = argparse.ArgumentParser(description='Translator')
+    parser.add_argument('-s', '--source', type=Path, required=True, help='Path to source code')
+    parser.add_argument('-c', '--code-output', type=Path, default="./exec_code",
+                        help='Path to code memory binary output')
+    parser.add_argument('-d', '--data-output', type=Path, default="./exec_data",
+                        help='Path to data memory binary output')
+    args = parser.parse_args()
 
-flag @ if
-    1
-else
-    2 3 out
-then
-    3 do  
-        1 3 out
-        1 3 out
-        1 3 out
-        3 3 out
-        1-
-    loop
+    print(f"Programm binary will be saved to: {args.code_output}")
+    print(f"Data binary will be saved to: {args.code_output}")
 
-bye
-        """
-    )()
+    code, data = Translator(read_file(args.source))()
+
+    write_binary(args.code_output, code)
+    write_binary(args.data_output, data)

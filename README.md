@@ -19,6 +19,52 @@ forth | cisc | harv | hw | tick | binary | trap | port | cstr | prob1 | cache
 9. Null-terminated strings
 10. Усложнение - работа с памятью через кэш с смиуляцией задержек
 
+# Quick start
+## Prepare
+```bash
+pip install "uv>=0.9cd ,<0.10"
+uv sync
+```
+## Translator
+```bash
+uv run python ./src/Translator.py -s $SOURCE_PATH
+```
+```text
+usage: Translator.py [-h] -s SOURCE [-c CODE_OUTPUT] [-d DATA_OUTPUT]
+options:
+  -h, --help            show this help message and exit
+  -s, --source SOURCE   Path to source code
+  -c, --code-output CODE_OUTPUT
+                        Path to code memory binary output
+  -d, --data-output DATA_OUTPUT
+                        Path to data memory binary output
+```
+## Viewer
+```bash
+uv run python ./src/Viewer.py -c $CODE_BIN_PATH -d $DATA_BIN_PATH
+```
+```txt
+usage: Viewer.py [-h] -c CODE -d DATA
+options:
+  -h, --help       show this help message and exit
+  -c, --code CODE  Path to code memory dump
+  -d, --data DATA  Path to data memory dump
+```
+## Machine
+```bash
+uv run python ./src/Machine.py -c $CODE_BIN_PATH -d $DATA_BIN_PATH -s $SETTINGS_PATH
+```
+```txt
+usage: Machine.py [-h] -c CODE -d DATA -s SETTINGS
+options:
+  -h, --help            show this help message and exit
+  -c, --code CODE       Path to code memory dump
+  -d, --data DATA       Path to data memory dump
+  -s, --settings SETTINGS
+                        Path to settings file
+```
+
+
 # Описание языка
 
 ``` ebnf
