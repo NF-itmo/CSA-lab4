@@ -1,2 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+venv/
+.venv/
+.vscode/
+
+dist/
+build/
+
 exec_data
 exec_code
