@@ -1,20 +1,28 @@
 from dataclasses import dataclass, field
 import re
 from Config import (
-    DataElem, CodeElem, Opcode, Term,
-    AddressingMode, Registers, Args,
+    DataElem,
+    CodeElem,
+    Opcode,
+    Term,
+    AddressingMode,
+    Registers,
+    Args,
     instruction_size,
-    INTERRUPT_COUNT
+    INTERRUPT_COUNT,
 )
 from typing import Optional, Self
 
+
 def to_bytes(value: int, size: int) -> bytes:
-    return value.to_bytes(size, byteorder='big') 
+    return value.to_bytes(size, byteorder="big")
+
 
 class AutoPtr[T]:
-    '''
-        Коллекция с автоматическим счётчиком
-    '''
+    """
+    Коллекция с автоматическим счётчиком
+    """
+
     def __init__(self, collection: list[T]) -> None:
         """Инициализация коллекции
 
@@ -23,7 +31,7 @@ class AutoPtr[T]:
         """
         self._collection = collection
         self._ptr: int = 0
-    
+
     @property
     def ptr(self) -> int:
         return self._ptr
@@ -44,11 +52,13 @@ class AutoPtr[T]:
     def alloc(self, size: int) -> None:
         self._ptr += size
 
+
 @dataclass
 class DataMemory:
-    '''
-        Секция с данными
-    '''
+    """
+    Секция с данными
+    """
+
     Section: AutoPtr[DataElem] = field(default_factory=lambda: AutoPtr([]))
 
     @property
@@ -58,22 +68,20 @@ class DataMemory:
     @property
     def collection(self) -> list[DataElem]:
         return self.Section.collection
-    
+
     def alloc(
-        self,
-        values: Optional[list[int]] = None,
-        size: Optional[int] = None
+        self, values: Optional[list[int]] = None, size: Optional[int] = None
     ) -> int:
         if values is None and size is None:
             raise ValueError("Size or values array must be defined!")
         if size is not None and size < 0:
             raise ValueError(f"Block size must be non-negative, got: {size}")
-        
+
         size = len(values) if size is None else size  # pyright: ignore[reportArgumentType]
 
         start_addr = self.Section.ptr
         current_addr = start_addr
-        
+
         # Забиваем нулями, если нет предустановленного значения
         if values is None:
             values = [0 for _ in range(size)]
@@ -81,21 +89,22 @@ class DataMemory:
         # Забиваем в память
         for value in values:
             self.Section += DataElem(value, current_addr)
-        
+
         return start_addr
 
 
 @dataclass
 class CodeMemory:
-    '''
-        Память с кодом
+    """
+    Память с кодом
 
-        Секции:
-        + JumpSection - сюда подставляется jump на старт программы
-        + VectorSection - сюда пишем адреа обработчиков, которые будут вызваны при прерывании
-        + ProgramSection - секция с кодом проги
-        + HandlerSection - секция с обработчиками прерываний
-    '''
+    Секции:
+    + JumpSection - сюда подставляется jump на старт программы
+    + VectorSection - сюда пишем адреа обработчиков, которые будут вызваны при прерывании
+    + ProgramSection - секция с кодом проги
+    + HandlerSection - секция с обработчиками прерываний
+    """
+
     JumpSection: AutoPtr[CodeElem] = field(default_factory=lambda: AutoPtr([]))
     VectorSection: AutoPtr[CodeElem] = field(default_factory=lambda: AutoPtr([]))
     ProgramSection: AutoPtr[CodeElem] = field(default_factory=lambda: AutoPtr([]))
@@ -103,12 +112,12 @@ class CodeMemory:
 
     @property
     def ptr(self) -> int:
-        '''
-            Высчитывает позицию последнего слова
+        """
+        Высчитывает позицию последнего слова
 
-            Returns:
-                int: индекс позиции
-        '''
+        Returns:
+            int: индекс позиции
+        """
         return (
             self.JumpSection.ptr
             + self.VectorSection.ptr
@@ -118,76 +127,80 @@ class CodeMemory:
 
     @property
     def collection(self) -> list[CodeElem]:
-        '''
-            Собирает все подсекции в одину 
+        """
+        Собирает все подсекции в одину
 
-            Returns:
-                list[CodeElem]: список машинных слов
-        '''
+        Returns:
+            list[CodeElem]: список машинных слов
+        """
         return (
             self.JumpSection.collection
             + self.VectorSection.collection
             + self.ProgramSection.collection
             + self.HandlerSection.collection
         )
-    
+
     @property
     def vector_table_size(self) -> int:
-        '''
-            Получение размера секции векторов прерывания в байтах
-            
-            Считаем как [число векторов] * 4
+        """
+        Получение размера секции векторов прерывания в байтах
 
-            Returns:
-                int: размер секции
-        '''
+        Считаем как [число векторов] * 4
+
+        Returns:
+            int: размер секции
+        """
         return INTERRUPT_COUNT * 4
-    
+
     def _section_size_bytes(self, section: AutoPtr[CodeElem]) -> int:
-        '''
-            Считаем размер секции в байтах
-        '''
+        """
+        Считаем размер секции в байтах
+        """
         return sum(instruction_size(instr.opcode) for instr in section.collection)
-    
+
     @property
     def entry_prefix_size(self) -> int:
-        '''
-            Адрес начала программы в байтах
+        """
+        Адрес начала программы в байтах
 
-            Returns:
-                int: адрес начала программы в байтах
-        '''
-        return instruction_size(Opcode.JMP) + instruction_size(Opcode.LD)*2 + self.vector_table_size
+        Returns:
+            int: адрес начала программы в байтах
+        """
+        return (
+            instruction_size(Opcode.JMP)
+            + instruction_size(Opcode.LD) * 2
+            + self.vector_table_size
+        )
 
     @property
     def program_ptr_byte_addr(self) -> int:
-        '''
-            Текущий адрес в байтах
+        """
+        Текущий адрес в байтах
 
-            Returns:
-                int: тукцщий адрес программы
-        '''
+        Returns:
+            int: тукцщий адрес программы
+        """
         return self.entry_prefix_size + self._section_size_bytes(self.ProgramSection)
 
     def program_start(self) -> int:
-        '''
-            Считает старт начала программы (в инструкциях)
+        """
+        Считает старт начала программы (в инструкциях)
 
-            Returns:
-                int: порядковый индекс старта программы 
-        '''
+        Returns:
+            int: порядковый индекс старта программы
+        """
         return self.JumpSection.ptr + self.VectorSection.ptr
 
     def add_to_program(self, instruction: CodeElem) -> int:
-        '''
-            Добавить инструкцию в секцию программы
+        """
+        Добавить инструкцию в секцию программы
 
-            Args:
-                instruction (CodeElem): информация об инструкции
+        Args:
+            instruction (CodeElem): информация об инструкции
 
-            Returns:
-                int: порядковый индекс добавленной инструкции с начала программы
-        '''
+        Returns:
+            int: порядковый индекс добавленной инструкции с начала программы
+        """
         addr = self.program_start() + self.ProgramSection.ptr
         self.ProgramSection += instruction
 
@@ -200,9 +213,9 @@ class CodeMemory:
 
 
 class Translator:
-    '''
-        Транслятор кода в машинный код
-    '''
+    """
+    Транслятор кода в машинный код
+    """
 
     def __init__(self, program: str) -> None:
         self._tokens = self._split(program)
@@ -211,16 +224,28 @@ class Translator:
         self._data = DataMemory()
         self._code = CodeMemory()
 
-        self._vars: dict[str, int] = {}  # мапа название переменной - адрес переменной (data mem)
-        self._const: dict[str, int] = {}  # мапа название константы - адрес литерала (data mem)
-        self._func: dict[str, int] = {}  # мапа название функции - адрес старта (code mem)
-        self._interrupt_vectors: dict[int, int] = {}  # мапа номер вектора - адрес хэндлера (code mem)
-        self._literal_ptrs: dict[int, int] = {}  # мапа значение литерала - адрес (data mem)
-        self._string_ptrs: dict[str, int] = {}  # мапа строка -> адрес c-string в data mem
+        self._vars: dict[
+            str, int
+        ] = {}  # мапа название переменной - адрес переменной (data mem)
+        self._const: dict[
+            str, int
+        ] = {}  # мапа название константы - адрес литерала (data mem)
+        self._func: dict[
+            str, int
+        ] = {}  # мапа название функции - адрес старта (code mem)
+        self._interrupt_vectors: dict[
+            int, int
+        ] = {}  # мапа номер вектора - адрес хэндлера (code mem)
+        self._literal_ptrs: dict[
+            int, int
+        ] = {}  # мапа значение литерала - адрес (data mem)
+        self._string_ptrs: dict[
+            str, int
+        ] = {}  # мапа строка -> адрес c-string в data mem
 
     @staticmethod
     def _split(program: str) -> list[str]:
-        '''
+        """
             Разбиение программы на слова
 
             Args:
@@ -228,7 +253,7 @@ class Translator:
 
         Returns:
             list[str]: Список слов
-        '''
+        """
         tokens: list[str] = []
         idx = 0
         length = len(program)
@@ -266,50 +291,50 @@ class Translator:
 
     @staticmethod
     def _parse_int(token: str) -> Optional[int]:
-        '''
-            Безопасный парсинг чисел
+        """
+        Безопасный парсинг чисел
 
-            Args:
-                token (str): токен
+        Args:
+            token (str): токен
 
-            Returns:
-                Optinal[int] - None если токен невалиден
-        '''
+        Returns:
+            Optinal[int] - None если токен невалиден
+        """
         try:
             return int(token)
         except ValueError:
             return None
 
     def _has_tokens(self) -> bool:
-        '''
-            Есть ли ещё токены
+        """
+        Есть ли ещё токены
 
-            Returns:
-                bool: очев? очев!
-        '''
+        Returns:
+            bool: очев? очев!
+        """
         return self._cursor < len(self._tokens)
 
     def _peek_token(self) -> Optional[str]:
-        '''
-            Небезопасное получение токенов
+        """
+        Небезопасное получение токенов
 
-            Returns:
-                Optional[str]: если возможно, то выдаёт токен, иначе - None
-        '''
+        Returns:
+            Optional[str]: если возможно, то выдаёт токен, иначе - None
+        """
         if not self._has_tokens():
             return None
         return self._tokens[self._cursor]
 
     def _next_token(self, err_msg: str = "Syntax error") -> str:
-        '''
-            Безопасное получение токенов
+        """
+        Безопасное получение токенов
 
-            Raises:
-                ValueError: если программа кончилась
+        Raises:
+            ValueError: если программа кончилась
 
-            Returns:
-                str: следующий токен
-        '''
+        Returns:
+            str: следующий токен
+        """
         if not self._has_tokens():
             raise ValueError(err_msg)
 
@@ -318,28 +343,28 @@ class Translator:
         return token
 
     def _emit(self, opcode: Opcode, args: Optional[list[int]] = None) -> int:
-        '''
-            Обёртка для добавления инструкций в память команд
+        """
+        Обёртка для добавления инструкций в память команд
 
-            Args:
-                opcode (Opcode): Опкод инструкции
-                args (Optional[list[int]]): Список аргументов инструкции
+        Args:
+            opcode (Opcode): Опкод инструкции
+            args (Optional[list[int]]): Список аргументов инструкции
 
-            Returns:
-                int: порядковый индекс добавленной инструкции с начала программы
-        '''
+        Returns:
+            int: порядковый индекс добавленной инструкции с начала программы
+        """
         return self._code.add_to_program(CodeElem(opcode, args or []))
-    
-    def _literal_addr(self, value: int) -> int:
-        '''
-            Получение адреса литерала или его создание (при отсутсвии)
 
-            Args:
-                value (int): значение литерала
-            
-            Returns:
-                int: адрес литерала в памяти данных
-        '''
+    def _literal_addr(self, value: int) -> int:
+        """
+        Получение адреса литерала или его создание (при отсутсвии)
+
+        Args:
+            value (int): значение литерала
+
+        Returns:
+            int: адрес литерала в памяти данных
+        """
         addr = self._literal_ptrs.get(value)
         if addr is not None:
             return addr
@@ -349,39 +374,37 @@ class Translator:
         return addr
 
     def _cstring_addr(self, value: str) -> int:
-        '''
-            Создание строки
+        """
+        Создание строки
 
-            Args:
-                value (str): содержимое строки
+        Args:
+            value (str): содержимое строки
 
-            Returns:
-                int: адрес начала строки
-        '''
+        Returns:
+            int: адрес начала строки
+        """
         # addr = self._string_ptrs.get(value)
         # if addr is not None:
         #     return addr
 
-        addr = self._data.alloc(
-            [ord(char) for char in value] + [0]
-        )
+        addr = self._data.alloc([ord(char) for char in value] + [0])
         self._string_ptrs[value] = addr
         return addr
 
     @staticmethod
     def _to_term(token: str) -> Term:
-        '''
-            Безопасное преобразование токена в терм
+        """
+        Безопасное преобразование токена в терм
 
-            Args:
-                token (str): токен
+        Args:
+            token (str): токен
 
-            Returns:
-                Term: очев
-            
-            Raises:
-                ValueError: если такого токена не существует
-        '''
+        Returns:
+            Term: очев
+
+        Raises:
+            ValueError: если такого токена не существует
+        """
         try:
             return Term(token)
         except ValueError:
@@ -421,14 +444,14 @@ class Translator:
         if name in self._func:
             raise ValueError(f"Name already used by function: {name}")
 
-        self._vars[name] = self._data.alloc(size = size)
+        self._vars[name] = self._data.alloc(size=size)
 
     def _compile_if(self) -> None:
-        '''
-            if ... [else ...] then
-            Условие берём с вершины стека, 0 -> false, non-zero -> true.
-            JZ поглащает predicate со стека.
-        '''
+        """
+        if ... [else ...] then
+        Условие берём с вершины стека, 0 -> false, non-zero -> true.
+        JZ поглащает predicate со стека.
+        """
         jz_index = self._code.ProgramSection.ptr
         self._emit(Opcode.JZ, [0])
 
@@ -453,12 +476,12 @@ class Translator:
         self._patch_program_jump(jz_index, end_addr)
 
     def _compile_do_loop(self) -> None:
-        '''
-            do ... loop
-            Минимальная семантика: проверка условия перед каждой итерацией.
-            Ожидается, что перед `do` и в конце тела цикла на стеке лежит predicate.
-            JZ поглащает predicate со стека.
-        '''
+        """
+        do ... loop
+        Минимальная семантика: проверка условия перед каждой итерацией.
+        Ожидается, что перед `do` и в конце тела цикла на стеке лежит predicate.
+        JZ поглащает predicate со стека.
+        """
         loop_check_addr = self._code.program_ptr_byte_addr
         jz_exit_index = self._code.ProgramSection.ptr
         self._emit(Opcode.JZ, [0])
@@ -472,11 +495,11 @@ class Translator:
         self._patch_program_jump(jz_exit_index, loop_exit_addr)
 
     def _define_function(self) -> None:
-        '''
-            Парсинг функций и обработчиков прерываний
+        """
+        Парсинг функций и обработчиков прерываний
 
-            Вынес наружу, ибо вложенность получается дикая
-        '''
+        Вынес наружу, ибо вложенность получается дикая
+        """
         func_name = self._next_token("Expected function name after ':'")
 
         if func_name in self._func:
@@ -498,7 +521,9 @@ class Translator:
                     f"Interrupt handler index out of range: {parsed_num} (expected 0..{INTERRUPT_COUNT - 1})"
                 )
             if parsed_num in self._interrupt_vectors:
-                raise ValueError(f"Interrupt handler already defined: interruption_{parsed_num}")
+                raise ValueError(
+                    f"Interrupt handler already defined: interruption_{parsed_num}"
+                )
             interrupt_number = parsed_num
         is_interruption = interrupt_number is not None
 
@@ -506,10 +531,10 @@ class Translator:
 
         # Заглушка для перепрыгивания функции
         self._emit(Opcode.JMP, [0])
-        
+
         # Запоминаем указатель на функцию
         func_addr = self._code.program_ptr_byte_addr
-        
+
         # Если прерывание - в мапу прерываний и добавляем отключение прерывания внутри
         if is_interruption:
             self._interrupt_vectors[interrupt_number] = func_addr
@@ -531,12 +556,12 @@ class Translator:
         self._code.ProgramSection.collection[jmp_index].args[0] = next_instruction_addr
 
     def _parse_token(self, token: str) -> None:
-        '''
-            Парсинг токена
+        """
+        Парсинг токена
 
-            Args:
-                token (str): обрабатываемый токен
-        '''
+        Args:
+            token (str): обрабатываемый токен
+        """
         if token == "if":
             self._compile_if()
             return
@@ -593,7 +618,9 @@ class Translator:
                 self._define_constant(const_name, int_value)
                 return
 
-            self._emit(Opcode.PUSH, [AddressingMode.MEM.value, self._literal_addr(int_value)])
+            self._emit(
+                Opcode.PUSH, [AddressingMode.MEM.value, self._literal_addr(int_value)]
+            )
             return
 
         # Получаем терм
@@ -603,7 +630,7 @@ class Translator:
         if term == Term.VLD:
             self._emit(Opcode.PUSH, [AddressingMode.STI.value, 0])
             return
-        
+
         # Сохранение по адресу со стека: (value addr --)
         if term == Term.VST:
             self._emit(Opcode.POP, [AddressingMode.STI.value, 0])
@@ -640,7 +667,7 @@ class Translator:
 
         # Пуш на стек execution token-a
         if term == Term.XT:
-            func_name = self._next_token("Expected function name after '\''")
+            func_name = self._next_token("Expected function name after '''")
 
             if func_name not in self._func:
                 raise ValueError(f"Unknown function: {func_name}")
@@ -648,7 +675,7 @@ class Translator:
 
             self._emit(Opcode.PUSH, [AddressingMode.IMM.value, func_ptr])
             return
-        
+
         # Вызов прерывания
         if term == Term.INT:
             self._emit(Opcode.INT)
@@ -702,12 +729,12 @@ class Translator:
         self._emit(opcode)
 
     def _to_binary(self) -> tuple[bytes, bytes]:
-        '''
-            Упаковка кода и данных в байтовый формат
+        """
+        Упаковка кода и данных в байтовый формат
 
-            Returns:
-                tuple[bytes, bytes]: Память программы и память данных соответственно
-        '''
+        Returns:
+            tuple[bytes, bytes]: Память программы и память данных соответственно
+        """
         # [LD A0][LD A1][entry jmp][interrupt vector table][program]
         entry_jmp_target = self._code.entry_prefix_size
         data_stack_start = self._data.ptr
@@ -743,9 +770,7 @@ class Translator:
             for arg, size in zip(instruction.args, args_sizes):
                 code_bin += to_bytes(arg, size)
 
-        data_bin = b"".join(
-            to_bytes(elem.value, 5) for elem in self._data.collection
-        )
+        data_bin = b"".join(to_bytes(elem.value, 5) for elem in self._data.collection)
         return code_bin, data_bin
 
     def __call__(self) -> None:

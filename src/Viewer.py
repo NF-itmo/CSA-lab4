@@ -1,11 +1,19 @@
 from pathlib import Path
-from Config import AddressingMode, Args, Opcode, Registers, INTERRUPT_COUNT, instruction_size
+from Config import (
+    AddressingMode,
+    Args,
+    Opcode,
+    Registers,
+    INTERRUPT_COUNT,
+    instruction_size,
+)
 
 DATA_WORD_SIZE = 5
 
 
 def from_bytes(value: bytes) -> int:
-    return int.from_bytes(value, byteorder='big') 
+    return int.from_bytes(value, byteorder="big")
+
 
 class Viewer:
     def __init__(self, program: bytes, data: bytes | None = None) -> None:
@@ -13,9 +21,8 @@ class Viewer:
         self._ptr = 0
         self._data_words = self._parse_data_words(data or b"")
         self._vectors_printed = False
-        self._vector_table_offset = (
-            instruction_size(Opcode.LD) * 2
-            + instruction_size(Opcode.JMP)
+        self._vector_table_offset = instruction_size(Opcode.LD) * 2 + instruction_size(
+            Opcode.JMP
         )
 
     @staticmethod
@@ -29,10 +36,10 @@ class Viewer:
             return []
 
         return [
-            from_bytes(data[offset:offset + DATA_WORD_SIZE])
+            from_bytes(data[offset : offset + DATA_WORD_SIZE])
             for offset in range(0, len(data), DATA_WORD_SIZE)
         ]
-    
+
     def _read_chunk(self, size: int, context: str) -> bytes:
         next_ptr = self._ptr + size
         if next_ptr > len(self._program):
@@ -40,7 +47,7 @@ class Viewer:
                 f"Unexpected EOF while reading {context} at offset {self._ptr:#x}"
             )
 
-        chunk = self._program[self._ptr:next_ptr]
+        chunk = self._program[self._ptr : next_ptr]
         self._ptr = next_ptr
         return chunk
 
@@ -48,7 +55,10 @@ class Viewer:
         if not args:
             return "-"
 
-        if opcode in {Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.CALL} and len(args) == 1:
+        if (
+            opcode in {Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.CALL}
+            and len(args) == 1
+        ):
             return f"0x{args[0]:x}"
 
         if opcode == Opcode.LD and len(args) == 2:
@@ -71,7 +81,7 @@ class Viewer:
 
             if mode == AddressingMode.MEM.name and 0 <= operand < len(self._data_words):
                 return f"mode={mode}, operand=0x{operand:x}, mem[0x{operand:x}]={self._data_words[operand]}"
-            
+
             return f"mode={mode}, operand=0x{operand:x}"
 
         return ", ".join(str(hex(arg)) for arg in args)
@@ -93,7 +103,9 @@ class Viewer:
                 args.append(from_bytes(raw_arg))
 
             arg_view = self._format_args(opcode, args)
-            print(f"{instruction_ptr:06x} - {hex_view:<14} - {opcode.name:<5} {arg_view}")
+            print(
+                f"{instruction_ptr:06x} - {hex_view:<14} - {opcode.name:<5} {arg_view}"
+            )
 
             if not self._vectors_printed and self._ptr == self._vector_table_offset:
                 self._print_interrupt_vectors()
@@ -115,5 +127,5 @@ if __name__ == "__main__":
     data = Viewer.read_file(str(data_path)) if data_path.exists() else b""
 
     # print(code.hex())
-    
+
     Viewer(code, data)()
