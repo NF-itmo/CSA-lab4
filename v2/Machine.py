@@ -1,7 +1,7 @@
 from Config import Opcode, AddressingMode, Args, INTERRUPT_COUNT, instruction_size
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing_extensions import Type
+from typing import Type
 
 
 WORD_MASK = (1 << 32) - 1

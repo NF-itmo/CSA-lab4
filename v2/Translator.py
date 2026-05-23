@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import re
 from Config import *
-from typing_extensions import Optional, Self
+from typing import Optional, Self
 
 def to_bytes(value: int, size: int) -> bytes:
     return value.to_bytes(size, byteorder='big') 
