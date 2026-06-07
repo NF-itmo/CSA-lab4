@@ -11,3 +11,6 @@ build/
 
 exec_data
 exec_code
+
+.ruff_cache/
+.pytest_cache/

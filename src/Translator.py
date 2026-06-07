@@ -1,23 +1,42 @@
 from dataclasses import dataclass, field
 import re
-from Config import (
-    DataElem,
-    CodeElem,
-    Opcode,
-    Term,
-    AddressingMode,
-    Registers,
-    Args,
-    instruction_size,
-    INTERRUPT_COUNT,
-)
+try:
+    from .Config import (
+        DataElem,
+        CodeElem,
+        Opcode,
+        Term,
+        AddressingMode,
+        Args,
+        instruction_size,
+        General,
+    )
+except ImportError:
+    from Config import (
+        DataElem,
+        CodeElem,
+        Opcode,
+        Term,
+        AddressingMode,
+        Args,
+        instruction_size,
+        General,
+    )
 from typing import Optional, Self
 import argparse
 from pathlib import Path
 
 
+DATA_STACK_DEPTH = 32
+
+
 def to_bytes(value: int, size: int) -> bytes:
     return value.to_bytes(size, byteorder="big")
+
+
+def mode_pair(dst: AddressingMode, src: AddressingMode) -> int:
+    """Pack two 4-bit addressing modes into one instruction argument."""
+    return (dst.value << 4) | src.value
 
 
 class AutoPtr[T]:
@@ -147,12 +166,12 @@ class CodeMemory:
         """
         Получение размера секции векторов прерывания в байтах
 
-        Считаем как [число векторов] * 4
+        Считаем как [число векторов] * INTERRUT_SIZE
 
         Returns:
             int: размер секции
         """
-        return INTERRUPT_COUNT * 4
+        return General.INTERRUPT_COUNT * General.INTERRUT_SIZE
 
     def _section_size_bytes(self, section: AutoPtr[CodeElem]) -> int:
         """
@@ -170,7 +189,7 @@ class CodeMemory:
         """
         return (
             instruction_size(Opcode.JMP)
-            + instruction_size(Opcode.LD) * 2
+            + instruction_size(Opcode.MOV) * 2
             + self.vector_table_size
         )
 
@@ -232,6 +251,9 @@ class Translator:
         self._const: dict[
             str, int
         ] = {}  # мапа название константы - адрес литерала (data mem)
+        self._const_value: dict[
+            str, int
+        ] = {}  # мапа название константы - числовое compile-time значение
         self._func: dict[
             str, int
         ] = {}  # мапа название функции - адрес старта (code mem)
@@ -264,6 +286,21 @@ class Translator:
             char = program[idx]
             if char.isspace():
                 idx += 1
+                continue
+
+            # Линейный комментарий: "\" до конца строки
+            if char == "\\":
+                while idx < length and program[idx] != "\n":
+                    idx += 1
+                continue
+
+            # Блочный комментарий: "(" ... ")"
+            if char == "(":
+                idx += 1
+                while idx < length and program[idx] != ")":
+                    idx += 1
+                if idx < length and program[idx] == ")":
+                    idx += 1
                 continue
 
             if char == '"':
@@ -357,6 +394,20 @@ class Translator:
         """
         return self._code.add_to_program(CodeElem(opcode, args or []))
 
+    def _emit_mov(
+        self,
+        dst: AddressingMode,
+        src: AddressingMode,
+        operand: int = 0,
+    ) -> int:
+        return self._emit(Opcode.MOV, [mode_pair(dst, src), operand])
+
+    def _emit_stack_push(self, src: AddressingMode, operand: int = 0) -> int:
+        return self._emit_mov(AddressingMode.ST_INC, src, operand)
+
+    def _emit_stack_binop(self, opcode: Opcode) -> int:
+        return self._emit(opcode, [mode_pair(AddressingMode.ST_DEC, AddressingMode.STI)])
+
     def _literal_addr(self, value: int) -> int:
         """
         Получение адреса литерала или его создание (при отсутсвии)
@@ -426,7 +477,11 @@ class Translator:
         return None
 
     def _patch_program_jump(self, program_index: int, target_addr: int) -> None:
-        self._code.ProgramSection.collection[program_index].args[0] = target_addr
+        instruction = self._code.ProgramSection.collection[program_index]
+        if instruction.opcode in {Opcode.JZ, Opcode.JNZ}:
+            instruction.args[1] = target_addr
+        else:
+            instruction.args[0] = target_addr
 
     def _define_constant(self, name: str, value: int) -> None:
         if name in self._const:
@@ -437,6 +492,21 @@ class Translator:
             raise ValueError(f"Name already used by function: {name}")
 
         self._const[name] = self._literal_addr(value)
+        self._const_value[name] = value
+
+    def _parse_const_or_number(self, token: str) -> int:
+        """
+        Парсинг числа или уже объявленной константы (compile-time).
+        """
+        int_value = self._parse_int(token)
+        if int_value is not None:
+            return int_value
+
+        const_value = self._const_value.get(token)
+        if const_value is not None:
+            return const_value
+
+        raise ValueError(f"Expected number or constant, got: {token}")
 
     def _define_allot(self, name: str, size: int) -> None:
         if name in self._vars:
@@ -455,7 +525,7 @@ class Translator:
         JZ поглащает predicate со стека.
         """
         jz_index = self._code.ProgramSection.ptr
-        self._emit(Opcode.JZ, [0])
+        self._emit(Opcode.JZ, [AddressingMode.ST_DEC.value, 0])
 
         stop = self._parse_until(stop_tokens={"else", "then"})
         if stop == "else":
@@ -486,7 +556,7 @@ class Translator:
         """
         loop_check_addr = self._code.program_ptr_byte_addr
         jz_exit_index = self._code.ProgramSection.ptr
-        self._emit(Opcode.JZ, [0])
+        self._emit(Opcode.JZ, [AddressingMode.ST_DEC.value, 0])
 
         loop_stop = self._parse_until(stop_tokens={"loop"})
         if loop_stop != "loop":
@@ -518,9 +588,10 @@ class Translator:
         int_match = re.fullmatch(r"interruption_(\d+)", func_name)
         if int_match is not None:
             parsed_num = int(int_match.group(1))
-            if not 0 <= parsed_num < INTERRUPT_COUNT:
+            if not 0 <= parsed_num < General.INTERRUPT_COUNT:
                 raise ValueError(
-                    f"Interrupt handler index out of range: {parsed_num} (expected 0..{INTERRUPT_COUNT - 1})"
+                    "Interrupt handler index out of range:",
+                    f"{parsed_num} (expected 0..{General.INTERRUPT_COUNT - 1})"
                 )
             if parsed_num in self._interrupt_vectors:
                 raise ValueError(
@@ -585,22 +656,22 @@ class Translator:
                 self._define_constant(const_name, cstring_addr)
                 return
 
-            self._emit(Opcode.PUSH, [AddressingMode.IMM.value, cstring_addr])
+            self._emit_stack_push(AddressingMode.IMM, cstring_addr)
             return
 
         const_addr = self._const.get(token)
         if const_addr is not None:
-            self._emit(Opcode.PUSH, [AddressingMode.MEM.value, const_addr])
+            self._emit_stack_push(AddressingMode.MEM, const_addr)
             return
 
         if token in self._func:
-            self._emit(Opcode.CALL, [self._func[token]])
+            self._emit(Opcode.CALL, [AddressingMode.IMM.value, self._func[token]])
             return
 
-        # Если это название переменной: в Forth переменная кладёт адрес.
+        # Если это название переменной: в Forth переменная кладёт адрес
         var_addr = self._vars.get(token)
         if var_addr is not None:
-            self._emit(Opcode.PUSH, [AddressingMode.IMM.value, var_addr])
+            self._emit_stack_push(AddressingMode.IMM, var_addr)
             return
 
         # Обработка литералов
@@ -620,9 +691,7 @@ class Translator:
                 self._define_constant(const_name, int_value)
                 return
 
-            self._emit(
-                Opcode.PUSH, [AddressingMode.MEM.value, self._literal_addr(int_value)]
-            )
+            self._emit_stack_push(AddressingMode.MEM, self._literal_addr(int_value))
             return
 
         # Получаем терм
@@ -630,12 +699,12 @@ class Translator:
 
         # Загрузка по адресу со стека: (addr -- value)
         if term == Term.VLD:
-            self._emit(Opcode.PUSH, [AddressingMode.STI.value, 0])
+            self._emit_mov(AddressingMode.STI, AddressingMode.MEMI)
             return
 
         # Сохранение по адресу со стека: (value addr --)
         if term == Term.VST:
-            self._emit(Opcode.POP, [AddressingMode.STI.value, 0])
+            self._emit_mov(AddressingMode.MEMI, AddressingMode.ST_DEC)
             return
 
         # Создание переменной
@@ -675,27 +744,49 @@ class Translator:
                 raise ValueError(f"Unknown function: {func_name}")
             func_ptr = self._func[func_name]
 
-            self._emit(Opcode.PUSH, [AddressingMode.IMM.value, func_ptr])
+            self._emit_stack_push(AddressingMode.IMM, func_ptr)
             return
 
         # Вызов прерывания
         if term == Term.INT:
-            self._emit(Opcode.INT)
+            self._emit(Opcode.INT, [AddressingMode.ST_DEC.value])
+            return
+
+        # Полиномиальная инструкция с переменным числом аргументов
+        if term == Term.POLY:
+            degree_token = self._next_token("Expected degree after 'poly'")
+            degree = self._parse_int(degree_token)
+            if degree is None or degree < 0 or degree > 0xFF:
+                raise ValueError(f"Invalid polynomial degree: {degree_token}")
+
+            coeffs: list[int] = []
+            for coeff_idx in range(degree + 1):
+                coeff_token = self._next_token(
+                    f"Expected coefficient c{coeff_idx} after 'poly {degree}'"
+                )
+                coeff_value = self._parse_const_or_number(coeff_token)
+                if not -(1 << 23) <= coeff_value < (1 << 23):
+                    raise ValueError(
+                        f"Coefficient out of 24-bit signed range: {coeff_value}"
+                    )
+                coeffs.append(coeff_value)
+
+            self._emit(Opcode.POLY, [degree] + coeffs)
             return
 
         # Вызов IN PMIO
         if term == Term.PIN:
-            self._emit(Opcode.IN)
+            self._emit(Opcode.IN, [AddressingMode.STI.value])
             return
 
         # Вызов OUT PMIO
         if term == Term.POUT:
-            self._emit(Opcode.OUT)
+            self._emit(Opcode.OUT, [mode_pair(AddressingMode.STI, AddressingMode.ST_DEC)])
             return
 
         # Вызов Execute (для работы с XT)
         if term == Term.EXEC:
-            self._emit(Opcode.SCALL)
+            self._emit(Opcode.CALL, [AddressingMode.ST_DEC.value, 0])
             return
 
         # Конец программы (bye)
@@ -705,26 +796,43 @@ class Translator:
 
         # Инкремент значения на вершине стека
         if term == Term.INC:
-            self._emit(Opcode.PUSH, [AddressingMode.MEM.value, self._literal_addr(1)])
-            self._emit(Opcode.SPLS)
+            self._emit(Opcode.INC, [AddressingMode.STI.value])
             return
 
         # Декремент значения на вершине стека
         if term == Term.DEC:
-            self._emit(Opcode.PUSH, [AddressingMode.MEM.value, self._literal_addr(1)])
-            self._emit(Opcode.SMIN)
+            self._emit(Opcode.DEC, [AddressingMode.STI.value])
             return
 
         # Мапа операций над стеком
         stack_arith_map: dict[Term, Opcode] = {
-            Term.PLS: Opcode.SPLS,
-            Term.MIN: Opcode.SMIN,
-            Term.DIV: Opcode.SDIV,
-            Term.MUL: Opcode.SMUL,
+            Term.PLS: Opcode.PLS,
+            Term.MIN: Opcode.MIN,
+            Term.DIV: Opcode.DIV,
+            Term.MUL: Opcode.MUL,
         }
         mapped_opcode = stack_arith_map.get(term)
         if mapped_opcode is not None:
-            self._emit(mapped_opcode)
+            self._emit_stack_binop(mapped_opcode)
+            return
+
+        if term in {Term.EQ, Term.GT, Term.LT}:
+            self._emit_stack_binop(Opcode[term.name])
+            return
+
+        if term == Term.DUP:
+            self._emit_mov(AddressingMode.ST_INC, AddressingMode.STI)
+            return
+
+        if term == Term.DROP:
+            self._emit_mov(AddressingMode.ST_DEC, AddressingMode.STI)
+            return
+
+        if term == Term.SWAP:
+            self._emit_mov(AddressingMode.D0, AddressingMode.ST_DEC)
+            self._emit_mov(AddressingMode.D1, AddressingMode.ST_DEC)
+            self._emit_mov(AddressingMode.ST_INC, AddressingMode.D0)
+            self._emit_mov(AddressingMode.ST_INC, AddressingMode.D1)
             return
 
         opcode = Opcode[term.name]
@@ -737,29 +845,47 @@ class Translator:
         Returns:
             tuple[bytes, bytes]: Память программы и память данных соответственно
         """
-        # [LD A0][LD A1][entry jmp][interrupt vector table][program]
+        # [MOV A0, IMM][MOV A1, IMM][entry jmp][interrupt vector table][program]
         entry_jmp_target = self._code.entry_prefix_size
-        data_stack_start = self._data.ptr
-        return_stack_start = data_stack_start + 1024
+        data_stack_start = max(self._data.ptr, 1)
+        data_stack_initial_top = data_stack_start - 1
+        return_stack_start = data_stack_start + DATA_STACK_DEPTH
 
         code_bin = (
-            to_bytes(Opcode.LD.value, 1)
-            + to_bytes(Registers.A0.value, 1)
-            + to_bytes(data_stack_start, 3)
-            + to_bytes(Opcode.LD.value, 1)
-            + to_bytes(Registers.A1.value, 1)
+            to_bytes(Opcode.MOV.value, 1)
+            + to_bytes(mode_pair(AddressingMode.A0, AddressingMode.IMM), 1)
+            + to_bytes(data_stack_initial_top, 3)
+            + to_bytes(Opcode.MOV.value, 1)
+            + to_bytes(mode_pair(AddressingMode.A1, AddressingMode.IMM), 1)
             + to_bytes(return_stack_start, 3)
             + to_bytes(Opcode.JMP.value, 1)
             + to_bytes(entry_jmp_target, 3)
         )
 
-        for idx in range(INTERRUPT_COUNT):
+        for idx in range(General.INTERRUPT_COUNT):
             vector_addr = self._interrupt_vectors.get(idx, 0)
-            code_bin += to_bytes(vector_addr, 4)
+            code_bin += to_bytes(vector_addr, General.INTERRUT_SIZE)
 
         for instruction in self._code.ProgramSection.collection:
             opcode = instruction.opcode.value
             args_sizes = Args[instruction.opcode.name].value
+
+            if instruction.opcode == Opcode.POLY:
+                if len(instruction.args) < 2:
+                    raise ValueError("POLY expects degree and at least one coefficient")
+                degree = instruction.args[0]
+                coeffs = instruction.args[1:]
+                if len(coeffs) != degree + 1:
+                    raise ValueError(
+                        f"POLY degree={degree} expects {degree + 1} coeffs, got {len(coeffs)}"
+                    )
+
+                code_bin += to_bytes(opcode, 1)
+                code_bin += to_bytes(degree, 1)
+                for coeff in coeffs:
+                    coeff_raw = coeff & 0xFFFFFF
+                    code_bin += to_bytes(coeff_raw, 3)
+                continue
 
             if len(instruction.args) != len(args_sizes):
                 raise ValueError(
@@ -772,7 +898,7 @@ class Translator:
             for arg, size in zip(instruction.args, args_sizes):
                 code_bin += to_bytes(arg, size)
 
-        data_bin = b"".join(to_bytes(elem.value, 5) for elem in self._data.collection)
+        data_bin = b"".join(to_bytes(elem.value, General.DATA_WORD_SIZE) for elem in self._data.collection)
         return code_bin, data_bin
 
     def __call__(self) -> tuple[bytes, bytes]:

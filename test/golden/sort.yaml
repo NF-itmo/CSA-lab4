@@ -1,0 +1,309 @@
+in_src: |
+  \ Сортировка через внешние прерывания:
+  \ 1) interruption_0 собирает вход в массив до '\0'
+  \ 2) после '\0' ставит done=1 (выход из idle)
+  \ 3) дальше запускается пузырьковая сортировка и вывод в порт 0
+
+  0 constant PORT0
+
+  16 allot arr
+  variable wr_ptr
+  variable cnt
+  variable done
+
+  variable i
+  variable j
+  variable va
+  variable vb
+
+  arr wr_ptr !
+  0 cnt !
+  0 done !
+
+  \ arr_at: idx -> value
+  : arr_at
+      arr + @
+  ;
+
+  \ arr_set: value idx -> ()
+  : arr_set
+      arr + !
+  ;
+
+  \ IRQ input handler (device 0)
+  : interruption_0
+      dup if
+          dup wr_ptr @ !
+          wr_ptr @ 1+ wr_ptr !
+          cnt @ 1+ cnt !
+          drop
+      else
+          drop
+          1 done !
+      then
+  ;
+
+  \ Ждём, пока interruption_0 выставит done=1
+  : idle
+      1 do
+          done @ if
+              0
+          else
+              1
+          then
+      loop
+  ;
+
+  \ Один полный проход пузырька по [0..cnt-2]
+  : bubble_pass
+      0 j !
+      1 do
+          j @ cnt @ 1- < if
+              j @ arr_at va !
+              j @ 1+ arr_at vb !
+              va @ vb @ > if
+                  vb @ j @ arr_set
+                  va @ j @ 1+ arr_set
+              then
+              j @ 1+ j !
+              1
+          else
+              0
+          then
+      loop
+  ;
+
+  \ Полная пузырьковая сортировка
+  : bubble_sort
+      0 i !
+      1 do
+          i @ cnt @ < if
+              bubble_pass
+              i @ 1+ i !
+              1
+          else
+              0
+          then
+      loop
+  ;
+
+  \ Вывод отсортированного массива в порт 0
+  : print_arr
+      0 j !
+      1 do
+          j @ cnt @ < if
+              j @ arr_at
+              PORT0 out
+              j @ 1+ j !
+              1
+          else
+              0
+          then
+      loop
+  ;
+
+  idle
+  bubble_sort
+  print_arr
+  bye
+in_simulation_conf: |
+  limit: 300000
+  memory_size: 256
+  port_mapped_io:
+    0:
+    - - 30000
+      - 9
+    - - 50000
+      - 1
+    - - 70000
+      - 4
+    - - 90000
+      - 2
+    - - 110000
+      - 8
+  result:
+  - name: Check results
+    slice: last
+    view: |
+      pmio-0-device-input: {pmio:0:input:dec}
+      pmio-0-device-output: {pmio:0:output:dec}
+    assert: |
+      pmio-0-device-input: []
+      pmio-0-device-output: [1, 2, 4, 8, 9]
+out_code_binary_hex: 30 60 00 00 18 30 70 00 00 39 70 00 00 26 00 00 79 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 30 80 00 00 01 30 80 00 00 11 30 a9 00 00 00 30 81 00 00 00 30 80 00 00 12 30 a9 00 00 00 30 81 00 00 00 30 80 00 00 13 30 a9 00 00 00 70 00 00 64 30 80 00 00 01 01 92 30 2a 00 00 00 62 70 00 00 75 30 80 00 00 01 01 92 30 a9 00 00 00 62 70 00 00 e1 30 82 00 00 00 72 09 00 00 cc 30 82 00 00 00 30 80 00 00 11 30 2a 00 00 00 30 a9 00 00 00 30 80 00 00 11 30 2a 00 00 00 05 02 30 80 00 00 11 30 a9 00 00 00 30 80 00 00 12 30 2a 00 00 00 05 02 30 80 00 00 12 30 a9 00 00 00 30 92 00 00 00 70 00 00 e0 30 92 00 00 00 30 81 00 00 18 30 80 00 00 13 30 a9 00 00 00 51 70 00 01 11 30 81 00 00 18 72 09 00 01 10 30 80 00 00 13 30 2a 00 00 00 72 09 00 01 07 30 81 00 00 00 70 00 01 0c 30 81 00 00 18 70 00 00 ea 62 70 00 01 f7 30 81 00 00 00 30 80 00 00 15 30 a9 00 00 00 30 81 00 00 18 72 09 00 01 f6 30 80 00 00 15 30 2a 00 00 00 30 80 00 00 12 30 2a 00 00 00 06 02 22 92 72 09 00 01 ed 30 80 00 00 15 30 2a 00 00 00 60 00 00 00 57 30 80 00 00 16 30 a9 00 00 00 30 80 00 00 15 30 2a 00 00 00 05 02 60 00 00 00 57 30 80 00 00 17 30 a9 00 00 00 30 80 00 00 16 30 2a 00 00 00 30 80 00 00 17 30 2a 00 00 00 21 92 72 09 00 01 ce 30 80 00 00 17 30 2a 00 00 00 30 80 00 00 15 30 2a 00 00 00 60 00 00 00 68 30 80 00 00 16 30 2a 00 00 00 30 80 00 00 15 30 2a 00 00 00 05 02 60 00 00 00 68 30 80 00 00 15 30 2a 00 00 00 05 02 30 80 00 00 15 30 a9 00 00 00 30 81 00 00 18 70 00 01 f2 30 81 00 00 00 70 00 01 29 62 70 00 02 5d 30 81 00 00 00 30 80 00 00 14 30 a9 00 00 00 30 81 00 00 18 72 09 00 02 5c 30 80 00 00 14 30 2a 00 00 00 30 80 00 00 12 30 2a 00 00 00 22 92 72 09 00 02 53 60 00 00 01 15 30 80 00 00 14 30 2a 00 00 00 05 02 30 80 00 00 14 30 a9 00 00 00 30 81 00 00 18 70 00 02 58 30 81 00 00 00 70 00 02 0f 62 70 00 02 d4 30 81 00 00 00 30 80 00 00 15 30 a9 00 00 00 30 81 00 00 18 72 09 00 02 d3 30 80 00 00 15 30 2a 00 00 00 30 80 00 00 12 30 2a 00 00 00 22 92 72 09 00 02 ca 30 80 00 00 15 30 2a 00 00 00 60 00 00 00 57 30 81 00 00 00 41 29 30 80 00 00 15 30 2a 00 00 00 05 02 30 80 00 00 15 30 a9 00 00 00 30 81 00 00 18 70 00 02 cf 30 81 00 00 00 70 00 02 75 62 60 00 00 00 e5 60 00 00 01 fb 60 00 00 02 61 71
+out_data_binary_hex: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01
+out_code_view: |
+  000000 - 3060000018 - MOV   dst=A0, src=IMM, operand=0x18
+  000005 - 3070000039 - MOV   dst=A1, src=IMM, operand=0x39
+  00000a - 70000026   - JMP   0x26
+  00000e - 000079     - VEC0  0x79
+  000011 - 000000     - VEC1  0x0
+  000014 - 000000     - VEC2  0x0
+  000017 - 000000     - VEC3  0x0
+  00001a - 000000     - VEC4  0x0
+  00001d - 000000     - VEC5  0x0
+  000020 - 000000     - VEC6  0x0
+  000023 - 000000     - VEC7  0x0
+  000026 - 3080000001 - MOV   dst=+(ST), src=IMM, operand=0x1
+  00002b - 3080000011 - MOV   dst=+(ST), src=IMM, operand=0x11
+  000030 - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000035 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  00003a - 3080000012 - MOV   dst=+(ST), src=IMM, operand=0x12
+  00003f - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000044 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  000049 - 3080000013 - MOV   dst=+(ST), src=IMM, operand=0x13
+  00004e - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000053 - 70000064   - JMP   0x64
+  000057 - 3080000001 - MOV   dst=+(ST), src=IMM, operand=0x1
+  00005c - 0192       - PLS   dst=(ST)-, src=(ST)
+  00005e - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000063 - 62         - RET   -
+  000064 - 70000075   - JMP   0x75
+  000068 - 3080000001 - MOV   dst=+(ST), src=IMM, operand=0x1
+  00006d - 0192       - PLS   dst=(ST)-, src=(ST)
+  00006f - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000074 - 62         - RET   -
+  000075 - 700000e1   - JMP   0xe1
+  000079 - 3082000000 - MOV   dst=+(ST), src=(ST), operand=0x0
+  00007e - 72090000cc - JZ    mode=(ST)-, target=0xcc
+  000083 - 3082000000 - MOV   dst=+(ST), src=(ST), operand=0x0
+  000088 - 3080000011 - MOV   dst=+(ST), src=IMM, operand=0x11
+  00008d - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000092 - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000097 - 3080000011 - MOV   dst=+(ST), src=IMM, operand=0x11
+  00009c - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0000a1 - 0502       - INC   mode=(ST)
+  0000a3 - 3080000011 - MOV   dst=+(ST), src=IMM, operand=0x11
+  0000a8 - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  0000ad - 3080000012 - MOV   dst=+(ST), src=IMM, operand=0x12
+  0000b2 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0000b7 - 0502       - INC   mode=(ST)
+  0000b9 - 3080000012 - MOV   dst=+(ST), src=IMM, operand=0x12
+  0000be - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  0000c3 - 3092000000 - MOV   dst=(ST)-, src=(ST), operand=0x0
+  0000c8 - 700000e0   - JMP   0xe0
+  0000cc - 3092000000 - MOV   dst=(ST)-, src=(ST), operand=0x0
+  0000d1 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  0000d6 - 3080000013 - MOV   dst=+(ST), src=IMM, operand=0x13
+  0000db - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  0000e0 - 51         - IRET  -
+  0000e1 - 70000111   - JMP   0x111
+  0000e5 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  0000ea - 7209000110 - JZ    mode=(ST)-, target=0x110
+  0000ef - 3080000013 - MOV   dst=+(ST), src=IMM, operand=0x13
+  0000f4 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0000f9 - 7209000107 - JZ    mode=(ST)-, target=0x107
+  0000fe - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  000103 - 7000010c   - JMP   0x10c
+  000107 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  00010c - 700000ea   - JMP   0xea
+  000110 - 62         - RET   -
+  000111 - 700001f7   - JMP   0x1f7
+  000115 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  00011a - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  00011f - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000124 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  000129 - 72090001f6 - JZ    mode=(ST)-, target=0x1f6
+  00012e - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  000133 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000138 - 3080000012 - MOV   dst=+(ST), src=IMM, operand=0x12
+  00013d - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000142 - 0602       - DEC   mode=(ST)
+  000144 - 2292       - LT    dst=(ST)-, src=(ST)
+  000146 - 72090001ed - JZ    mode=(ST)-, target=0x1ed
+  00014b - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  000150 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000155 - 6000000057 - CALL  mode=IMM, target=0x57
+  00015a - 3080000016 - MOV   dst=+(ST), src=IMM, operand=0x16
+  00015f - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000164 - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  000169 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  00016e - 0502       - INC   mode=(ST)
+  000170 - 6000000057 - CALL  mode=IMM, target=0x57
+  000175 - 3080000017 - MOV   dst=+(ST), src=IMM, operand=0x17
+  00017a - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  00017f - 3080000016 - MOV   dst=+(ST), src=IMM, operand=0x16
+  000184 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000189 - 3080000017 - MOV   dst=+(ST), src=IMM, operand=0x17
+  00018e - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000193 - 2192       - GT    dst=(ST)-, src=(ST)
+  000195 - 72090001ce - JZ    mode=(ST)-, target=0x1ce
+  00019a - 3080000017 - MOV   dst=+(ST), src=IMM, operand=0x17
+  00019f - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0001a4 - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  0001a9 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0001ae - 6000000068 - CALL  mode=IMM, target=0x68
+  0001b3 - 3080000016 - MOV   dst=+(ST), src=IMM, operand=0x16
+  0001b8 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0001bd - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  0001c2 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0001c7 - 0502       - INC   mode=(ST)
+  0001c9 - 6000000068 - CALL  mode=IMM, target=0x68
+  0001ce - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  0001d3 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0001d8 - 0502       - INC   mode=(ST)
+  0001da - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  0001df - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  0001e4 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  0001e9 - 700001f2   - JMP   0x1f2
+  0001ed - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  0001f2 - 70000129   - JMP   0x129
+  0001f6 - 62         - RET   -
+  0001f7 - 7000025d   - JMP   0x25d
+  0001fb - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  000200 - 3080000014 - MOV   dst=+(ST), src=IMM, operand=0x14
+  000205 - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  00020a - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  00020f - 720900025c - JZ    mode=(ST)-, target=0x25c
+  000214 - 3080000014 - MOV   dst=+(ST), src=IMM, operand=0x14
+  000219 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  00021e - 3080000012 - MOV   dst=+(ST), src=IMM, operand=0x12
+  000223 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000228 - 2292       - LT    dst=(ST)-, src=(ST)
+  00022a - 7209000253 - JZ    mode=(ST)-, target=0x253
+  00022f - 6000000115 - CALL  mode=IMM, target=0x115
+  000234 - 3080000014 - MOV   dst=+(ST), src=IMM, operand=0x14
+  000239 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  00023e - 0502       - INC   mode=(ST)
+  000240 - 3080000014 - MOV   dst=+(ST), src=IMM, operand=0x14
+  000245 - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  00024a - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  00024f - 70000258   - JMP   0x258
+  000253 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  000258 - 7000020f   - JMP   0x20f
+  00025c - 62         - RET   -
+  00025d - 700002d4   - JMP   0x2d4
+  000261 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  000266 - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  00026b - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  000270 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  000275 - 72090002d3 - JZ    mode=(ST)-, target=0x2d3
+  00027a - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  00027f - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  000284 - 3080000012 - MOV   dst=+(ST), src=IMM, operand=0x12
+  000289 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  00028e - 2292       - LT    dst=(ST)-, src=(ST)
+  000290 - 72090002ca - JZ    mode=(ST)-, target=0x2ca
+  000295 - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  00029a - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  00029f - 6000000057 - CALL  mode=IMM, target=0x57
+  0002a4 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  0002a9 - 4129       - OUT   device=(ST), value=(ST)-
+  0002ab - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  0002b0 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  0002b5 - 0502       - INC   mode=(ST)
+  0002b7 - 3080000015 - MOV   dst=+(ST), src=IMM, operand=0x15
+  0002bc - 30a9000000 - MOV   dst=(MEM), src=(ST)-, operand=0x0
+  0002c1 - 3081000018 - MOV   dst=+(ST), src=MEM, operand=0x18
+  0002c6 - 700002cf   - JMP   0x2cf
+  0002ca - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=0
+  0002cf - 70000275   - JMP   0x275
+  0002d3 - 62         - RET   -
+  0002d4 - 60000000e5 - CALL  mode=IMM, target=0xe5
+  0002d9 - 60000001fb - CALL  mode=IMM, target=0x1fb
+  0002de - 6000000261 - CALL  mode=IMM, target=0x261
+  0002e3 - 71         - HALT  -
+out_machine: |-
+  Check results:
+  pmio-0-device-input: []
+  pmio-0-device-output: [1, 2, 4, 8, 9]

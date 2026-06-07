@@ -1,0 +1,80 @@
+in_src: |
+  \ Печать Hello World через программное прерывание
+  1 constant INT_PUTC
+  0 constant OUT_PORT
+
+  "Hello World!" constant msg
+
+  \ ( addr -- ) вывести null-terminated строку
+  : puts0
+      1 do
+          dup @ dup if
+              INT_PUTC int
+              1+
+              1
+          else
+              drop
+              drop
+              0
+          then
+      loop
+  ;
+
+  msg puts0
+  bye
+
+  \ INT 1: запись байта в порт 0
+  : interruption_1
+      OUT_PORT out
+  ;
+in_simulation_conf: |
+  limit: 100000
+  memory_size: 256
+  result:
+  - name: Check results
+    slice: last
+    view: |
+      pmio-0-device-output: {pmio:0:output:sym}
+    assert: |
+      pmio-0-device-output: "Hello World!"
+out_code_binary_hex: 30 60 00 00 0f 30 70 00 00 30 70 00 00 26 00 00 00 00 00 7d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 70 00 00 6e 30 81 00 00 00 72 09 00 00 6d 30 82 00 00 00 30 2a 00 00 00 30 82 00 00 00 72 09 00 00 5a 30 81 00 00 00 50 09 05 02 30 81 00 00 00 70 00 00 69 30 92 00 00 00 30 92 00 00 00 30 81 00 00 01 70 00 00 2f 62 30 81 00 00 0f 60 00 00 00 2a 71 70 00 00 85 30 81 00 00 01 41 29 51
+out_data_binary_hex: 00 00 00 01 00 00 00 00 00 00 00 48 00 00 00 65 00 00 00 6c 00 00 00 6c 00 00 00 6f 00 00 00 20 00 00 00 57 00 00 00 6f 00 00 00 72 00 00 00 6c 00 00 00 64 00 00 00 21 00 00 00 00 00 00 00 02
+out_code_view: |
+  000000 - 306000000f - MOV   dst=A0, src=IMM, operand=0xf
+  000005 - 3070000030 - MOV   dst=A1, src=IMM, operand=0x30
+  00000a - 70000026   - JMP   0x26
+  00000e - 000000     - VEC0  0x0
+  000011 - 00007d     - VEC1  0x7d
+  000014 - 000000     - VEC2  0x0
+  000017 - 000000     - VEC3  0x0
+  00001a - 000000     - VEC4  0x0
+  00001d - 000000     - VEC5  0x0
+  000020 - 000000     - VEC6  0x0
+  000023 - 000000     - VEC7  0x0
+  000026 - 7000006e   - JMP   0x6e
+  00002a - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0
+  00002f - 720900006d - JZ    mode=(ST)-, target=0x6d
+  000034 - 3082000000 - MOV   dst=+(ST), src=(ST), operand=0x0
+  000039 - 302a000000 - MOV   dst=(ST), src=(MEM), operand=0x0
+  00003e - 3082000000 - MOV   dst=+(ST), src=(ST), operand=0x0
+  000043 - 720900005a - JZ    mode=(ST)-, target=0x5a
+  000048 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0
+  00004d - 5009       - INT   mode=(ST)-
+  00004f - 0502       - INC   mode=(ST)
+  000051 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0
+  000056 - 70000069   - JMP   0x69
+  00005a - 3092000000 - MOV   dst=(ST)-, src=(ST), operand=0x0
+  00005f - 3092000000 - MOV   dst=(ST)-, src=(ST), operand=0x0
+  000064 - 3081000001 - MOV   dst=+(ST), src=MEM, operand=0x1
+  000069 - 7000002f   - JMP   0x2f
+  00006d - 62         - RET   -
+  00006e - 308100000f - MOV   dst=+(ST), src=MEM, operand=0xf
+  000073 - 600000002a - CALL  mode=IMM, target=0x2a
+  000078 - 71         - HALT  -
+  000079 - 70000085   - JMP   0x85
+  00007d - 3081000001 - MOV   dst=+(ST), src=MEM, operand=0x1
+  000082 - 4129       - OUT   device=(ST), value=(ST)-
+  000084 - 51         - IRET  -
+out_machine: |-
+  Check results:
+  pmio-0-device-output: "Hello World!"
