@@ -2546,14 +2546,6 @@ class Simulation():
                 value = ord(value_raw) if isinstance(value_raw, str) else int(value_raw)
                 schedule.append((tick, value))
 
-            positive_gaps = [
-                right - left
-                for left, right in zip(sorted(event_ticks), sorted(event_ticks)[1:])
-                if right > left
-            ]
-            terminator_gap = min(positive_gaps) if len(positive_gaps) != 0 else 1000
-            # Null-terminator моделируется как следующий входной символ, а не мгновенный EOF.
-            schedule.append((last_tick + terminator_gap, 0))
             device.set_irq_schedule(schedule)
 
 

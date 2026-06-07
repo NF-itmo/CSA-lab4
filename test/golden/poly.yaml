@@ -13,24 +13,19 @@ in_src: |
 in_simulation_conf: |
   limit: 100000
   memory_size: 256
-  cache_enabled: false
   result:
   - name: Check results
     slice: last
     view: |
       pmio-0-device-output: {pmio:0:output:sym}
-      cache-enabled: {cache:total:enabled:bool}
-      cache-total-hit-rate: {cache:total:hitRate:dec}
-      cache-code-hit-rate: {cache:code:hitRate:dec}
-      cache-data-hit-rate: {cache:data:hitRate:dec}
     assert: |
       pmio-0-device-output: "A"
-      cache-enabled: False
-      cache-total-hit-rate: 0.0000
-      cache-code-hit-rate: 0.0000
-      cache-data-hit-rate: 0.0000
-out_code_binary_hex: 30 60 00 00 03 30 70 00 00 24 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 70 00 00 32 30 81 00 00 01 41 29 51 30 81 00 00 02 31 02 00 00 01 00 00 02 00 00 03 30 81 00 00 03 01 92 30 81 00 00 00 50 09 71
-out_data_binary_hex: 00 00 00 01 00 00 00 00 00 00 00 02 00 00 00 30
+out_code_binary_hex: |-
+  30 60 00 00 03 30 70 00 00 24 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 70 00 00 32 30 81 00 00 01 41 29 51 30 81 00 00 02 31 02 00 00 01 00 00 02 00 00 03
+  30 81 00 00 03 01 92 30 81 00 00 00 50 09 71
+out_data_binary_hex: |-
+  00 00 00 01 00 00 00 00 00 00 00 02 00 00 00 30
 out_code_view: |
   000000 - 3060000003 - MOV   dst=A0, src=IMM, operand=0x3
   000005 - 3070000024 - MOV   dst=A1, src=IMM, operand=0x24
@@ -57,7 +52,3 @@ out_code_view: |
 out_machine: |-
   Check results:
   pmio-0-device-output: "A"
-  cache-enabled: False
-  cache-total-hit-rate: 0.0000
-  cache-code-hit-rate: 0.0000
-  cache-data-hit-rate: 0.0000

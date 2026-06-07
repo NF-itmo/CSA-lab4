@@ -7,8 +7,8 @@ from src.Viewer import Viewer
 from src.Machine import Simulation, MachineConfig
 
 
-def remove_cr(string: str) -> str:
-    return string.replace("\n", "")
+def remove_cr_from_hex(string: str) -> str:
+    return string.replace("\n", " ")
 
 
 @pytest.mark.golden_test("golden/*.yaml")
@@ -22,8 +22,8 @@ def test_translator_and_machine(golden: dict[str, str], caplog: pytest.LogCaptur
     print(programm_bytes.hex(' '))
     print(data_bytes.hex(' '))
 
-    assert programm_bytes.hex(' ') == remove_cr(golden["out_code_binary_hex"])
-    assert data_bytes.hex(' ') == remove_cr(golden["out_data_binary_hex"])
+    assert programm_bytes.hex(' ') == remove_cr_from_hex(golden["out_code_binary_hex"])
+    assert data_bytes.hex(' ') == remove_cr_from_hex(golden["out_data_binary_hex"])
 
     viewer_out = Viewer(programm_bytes, data_bytes)()
     print(viewer_out)
