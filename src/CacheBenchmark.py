@@ -5,9 +5,14 @@ from typing import Any
 
 import yaml
 
-from src.Config import General, MachineConfig
-from src.Machine import GLOBAL_NETLIST, Simulation
-from src.Translator import Translator
+try:
+    from .Config import General, MachineConfig
+    from .Machine import GLOBAL_NETLIST, Simulation
+    from .Translator import Translator
+except ImportError:
+    from Config import General, MachineConfig
+    from Machine import GLOBAL_NETLIST, Simulation
+    from Translator import Translator
 
 
 @dataclass(frozen=True)
@@ -16,13 +21,17 @@ class CacheVariant:
     line_size: int
     line_count: int
     way_count: int
+    cache_enabled: bool = True
 
     @property
     def capacity(self) -> int:
+        if not self.cache_enabled:
+            return 0
         return self.line_size * self.line_count
 
 
 FIXED_CAPACITY_VARIANTS = [
+    CacheVariant("no_cache_latency", line_size=16, line_count=16, way_count=4, cache_enabled=False),
     CacheVariant("4way_line32_cap256", line_size=32, line_count=8, way_count=4),
     CacheVariant("2way_line16_cap256", line_size=16, line_count=16, way_count=2),
     CacheVariant("4way_line16_cap256", line_size=16, line_count=16, way_count=4),
@@ -82,7 +91,7 @@ def run_case(golden_path: Path, variant: CacheVariant) -> dict[str, Any]:
         simulation_config.limit,
         simulation_config.port_mapped_io,
         log_configs=[],
-        cache_enabled=True,
+        cache_enabled=variant.cache_enabled,
     )
 
     result: dict[str, Any] = {
@@ -92,6 +101,7 @@ def run_case(golden_path: Path, variant: CacheVariant) -> dict[str, Any]:
         "line_count": variant.line_count,
         "way_count": variant.way_count,
         "capacity": variant.capacity,
+        "cache_enabled": variant.cache_enabled,
     }
 
     try:
@@ -121,6 +131,7 @@ def aggregate(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "line_count": row["line_count"],
                 "way_count": row["way_count"],
                 "capacity": row["capacity"],
+                "cache_enabled": row["cache_enabled"],
                 "ticks": 0,
                 "code": {"accesses": 0, "hits": 0, "misses": 0},
                 "data": {"accesses": 0, "hits": 0, "misses": 0},
@@ -129,6 +140,7 @@ def aggregate(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
             },
         )
         acc["ticks"] += row.get("ticks", 0)
+
         if "error" in row:
             acc["errors"] += 1
         for scope in ("code", "data", "total"):
@@ -152,6 +164,7 @@ def flatten_row(row: dict[str, Any]) -> dict[str, Any]:
         "line_count": row["line_count"],
         "way_count": row["way_count"],
         "capacity": row["capacity"],
+        "cache_enabled": row["cache_enabled"],
         "ticks": row["ticks"],
     }
     for scope in ("code", "data", "total"):
@@ -170,6 +183,7 @@ def print_markdown(rows: list[dict[str, Any]]) -> None:
     headers = [
         "test",
         "variant",
+        "cache",
         "line",
         "lines",
         "ways",
@@ -190,6 +204,7 @@ def print_markdown(rows: list[dict[str, Any]]) -> None:
         values: list[str] = [
             row["test"],
             row["variant"],
+            "on" if row["cache_enabled"] else "off",
             str(row["line_size"]),
             str(row["line_count"]),
             str(row["way_count"]),
