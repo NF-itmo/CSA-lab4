@@ -1,11 +1,11 @@
 in_src: |
-  \ Largest palindrome made from product of two 3-digit numbers.
+  \ Наибольший палиндром, представисый в виде произведения 3-значных чисел
   \
-  \ Optimized idea:
-  \   1. Generate 6-digit palindromes from the high half h:
+  \ Оптимизации:
+  \   1. Генерация палиндрома из половинок:
   \      h=906 -> 906609
-  \   2. Test divisors from 990 down, only multiples of 11
-  \   3. Because palindromes are checked descending, the first factorization wins
+  \   2. Проверяем длители с 990 и меньше, при чём кратные 11
+  \   3. Т.к. идём сверху-вниз, то первый удачный случай - наше решение
 
   1 constant INT_PUTC
 
@@ -36,12 +36,12 @@ in_src: |
   variable rem
   variable digit
 
-  \ IRQ/INT #1: write one symbol to device 0
+  \ IRQ/INT #1: пишем в устройство 0
   : interruption_1
       0 out
   ;
 
-  \ h -> p, where h=abc and p=abccba
+  \ h -> p, где h=abc, а p=abccba
   : make_pal
       h @ TEN / hi10 !
       h @ HUNDRED / a !
@@ -54,7 +54,7 @@ in_src: |
       p @ a @ + p !
   ;
 
-  \ Search one palindrome p for a 3-digit factorization.
+  \ Ищем разложения
   : test_pal
       MAX_DIVISOR i !
       i @ 99 > do
@@ -76,14 +76,14 @@ in_src: |
       loop
   ;
 
-  \ ( place -- ) emit one decimal digit from rem and update rem
+  \ ( place -- ) выводим одну цифру
   : emit_place
       dup rem @ swap / digit !
       digit @ 48 + INT_PUTC int
       digit @ * rem @ swap - rem !
   ;
 
-  \ Print p as 6 decimal digits
+  \ Вывод p как 6 отделных цифр
   : print_answer
       p @ rem !
       P5 emit_place

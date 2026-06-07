@@ -1,5 +1,6 @@
 in_src: |
-  \ POLY test: 1 + 2*x + 3*x^2 for x=2 gives 17; +48 prints ASCII A.
+  \ POLY: 1 + 2*x + 3*x^2
+  \ при x=2 ответ 17;
   1 constant INT_PUTC
 
   : interruption_1
@@ -7,7 +8,6 @@ in_src: |
   ;
 
   2 poly 2 1 2 3
-  48 +
   INT_PUTC int
   bye
 in_simulation_conf: |
@@ -17,18 +17,18 @@ in_simulation_conf: |
   - name: Check results
     slice: last
     view: |
-      pmio-0-device-output: {pmio:0:output:sym}
+      pmio-0-device-output: {pmio:0:output:dec}
     assert: |
-      pmio-0-device-output: "A"
+      pmio-0-device-output: [17]
 out_code_binary_hex: |-
-  30 60 00 00 03 30 70 00 00 24 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
+  30 60 00 00 02 30 70 00 00 23 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 70 00 00 32 30 81 00 00 01 41 29 51 30 81 00 00 02 31 02 00 00 01 00 00 02 00 00 03
-  30 81 00 00 03 01 92 30 81 00 00 00 50 09 71
+  30 81 00 00 00 50 09 71
 out_data_binary_hex: |-
-  00 00 00 01 00 00 00 00 00 00 00 02 00 00 00 30
+  00 00 00 01 00 00 00 00 00 00 00 02
 out_code_view: |
-  000000 - 3060000003 - MOV   dst=A0, src=IMM, operand=0x3
-  000005 - 3070000024 - MOV   dst=A1, src=IMM, operand=0x24
+  000000 - 3060000002 - MOV   dst=A0, src=IMM, operand=0x2
+  000005 - 3070000023 - MOV   dst=A1, src=IMM, operand=0x23
   00000a - 70000026   - JMP   0x26
   00000e - 000000     - VEC0  0x0
   000011 - 00002a     - VEC1  0x2a
@@ -44,11 +44,9 @@ out_code_view: |
   000031 - 51         - IRET  -
   000032 - 3081000002 - MOV   dst=+(ST), src=MEM, operand=0x2
   000037 - 3102000001000002000003 - POLY  degree=2, coeffs=[1, 2, 3]
-  000042 - 3081000003 - MOV   dst=+(ST), src=MEM, operand=0x3
-  000047 - 0192       - PLS   dst=(ST)-, src=(ST)
-  000049 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0
-  00004e - 5009       - INT   mode=(ST)-
-  000050 - 71         - HALT  -
+  000042 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0
+  000047 - 5009       - INT   mode=(ST)-
+  000049 - 71         - HALT  -
 out_machine: |-
   Check results:
-  pmio-0-device-output: "A"
+  pmio-0-device-output: [17]
