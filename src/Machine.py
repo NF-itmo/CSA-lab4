@@ -979,7 +979,7 @@ class CU2(Component):
         self.step_cnt = GLOBAL_NETLIST.add_component(CounterRegister("STEP_COUNTER"))
         self.di = GLOBAL_NETLIST.add_component(RSTrigger("DI"))
         self.halt = GLOBAL_NETLIST.add_component(RSTrigger("HALT"))
-        self.irq_mode = GLOBAL_NETLIST.add_component(RSTrigger("IRQ_MODE"))
+        self.irq_entry = GLOBAL_NETLIST.add_component(RSTrigger("IRQ_ENTRY"))
 
     def _lock_registers(self) -> None:
         for reg in (
@@ -1001,8 +1001,8 @@ class CU2(Component):
         self.di.reset.set(0)
         self.halt.set.set(0)
         self.halt.reset.set(0)
-        self.irq_mode.set.set(0)
-        self.irq_mode.reset.set(0)
+        self.irq_entry.set.set(0)
+        self.irq_entry.reset.set(0)
         self._machine.data_mem.latch.set(0)
         self._machine.data_mem.is_write.set(0)
         self._machine.devices.ext_device_req.set(0)
@@ -1185,11 +1185,11 @@ class CU2(Component):
                 else:
                     # IRQ may disappear before the source is sampled; in that case
                     # the entry sequence is cancelled and the interrupted PC is kept.
-                    self.irq_mode.reset.set(1)
+                    self.irq_entry.reset.set(1)
                     self._finish_step()
                 return
 
-            self.irq_mode.reset.set(1)
+            self.irq_entry.reset.set(1)
             self._finish_step()
             return
 
@@ -1234,7 +1234,7 @@ class CU2(Component):
             self._next_step()
         elif service_step == 9:
             self._machine.pc.unlock()
-            self.irq_mode.reset.set(1)
+            self.irq_entry.reset.set(1)
             self._finish_step()
 
     def _tick_poly(self, instruction: int, instr_size: int, step: int) -> None:
@@ -1366,7 +1366,7 @@ class CU2(Component):
             return
 
         step = self.step_cnt.output.value
-        if self.irq_mode.output.value == 1:
+        if self.irq_entry.output.value == 1:
             self._tick_irq(step)
             return
 
@@ -1375,7 +1375,7 @@ class CU2(Component):
                 self.di.output.value == 0
                 and self.irq.value == 1
             ):
-                self.irq_mode.set.set(1)
+                self.irq_entry.set.set(1)
                 self.step_cnt.inc.set(1)
                 return
 
@@ -2195,8 +2195,8 @@ class Machine():
         # Запись в регистры
         self.write_to_reg_mux = GLOBAL_NETLIST.add_component(Shugar.Mux("REG", n=6))
         self.code_mem_arg_mask_2 = GLOBAL_NETLIST.add_component(Mask(0x0000FFFFFF))
-        self.poly_first_coeff = GLOBAL_NETLIST.add_component(SignExtendBits("POLY_FIRST_COEFF", 24, 0))  # перепроверить
-        self.poly_code_coeff = GLOBAL_NETLIST.add_component(SignExtendBits("POLY_CODE_COEFF", 24, 16))   # перепроверить
+        self.poly_first_coeff = GLOBAL_NETLIST.add_component(SignExtendBits("POLY_FIRST_COEFF", 24, 0))
+        self.poly_code_coeff = GLOBAL_NETLIST.add_component(SignExtendBits("POLY_CODE_COEFF", 24, 16))
         _ = self.alu.output >> self.write_to_reg_mux.inputs[0]
 
         _ = self.code_mem.output >> self.code_mem_arg_mask_2.input
