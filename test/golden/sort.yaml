@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ Сортировка через внешние прерывания:
   \ 1) interruption_0 собирает вход в массив до '\0'
   \ 2) после '\0' ставит done=1 (выход из idle)
@@ -128,16 +128,23 @@ in_simulation_conf: |
     - - 800
       - 8
     - - 1050
-      - 0x0
+      - 0
   result:
+  - name: Instruction trace
+    slice: all
+    head: 15
+    tail: 15
+    view: |-
+      PC: {PC:dec} - int: {DI:bool} - {instruction:str}
+      D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
   - name: Check results
     slice: last
-    view: |
+    view: |-
       pmio-0-device-input: {pmio:0:input:dec}
       pmio-0-device-output: {pmio:0:output:dec}
-    assert: |
+    assert: |-
       pmio-0-device-input: []
-      pmio-0-device-output: [1, 2, 4, 8, 9]
+      pmio-0-device-output: [2, 4, 8, 9]
 out_code_binary_hex: |-
   30 60 00 00 64 30 70 00 00 e8 70 00 00 26 00 00 88 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 30 80 00 00 08 30 80 00 00 48 30 a9 00 00 00 30 81 00 00 00 30 80 00 00 4c 30 a9 00
@@ -345,8 +352,68 @@ out_code_view: |
   0002f2 - 6000000275 - CALL  mode=IMM, target=0x275
   0002f7 - 71         - HALT  -
 out_machine: |-
+  Instruction trace:
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0x0
+  ...
+  PC: 649 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 649 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 649 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 649 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 649 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 743 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 743 - int: False - JZ    mode=(ST)-, target=0x2e7
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 743 - int: False - RET   -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 743 - int: False - RET   -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 743 - int: False - RET   -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 759 - int: False - RET   -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 759 - int: False - RET   -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 759 - int: False - HALT  -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 759 - int: False - HALT  -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 759 - int: False - HALT  -
+  D0: 0x4 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
   Check results:
   pmio-0-device-input: []
   pmio-0-device-output: [2, 4, 8, 9]
-
-  ASSERTION FAI

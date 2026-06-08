@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ POLY: 1 + 2*x + 3*x^2
   \ при x=2 ответ 17;
   1 constant INT_PUTC
@@ -14,18 +14,22 @@ in_simulation_conf: |
   limit: 100000
   memory_size: 256
   result:
+  - name: Instruction trace
+    slice: all
+    head: 15
+    tail: 15
+    view: |-
+      PC: {PC:dec} - int: {DI:bool} - {instruction:str}
+      D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
   - name: Check results
     slice: last
-    view: |
-      pmio-0-device-output: {pmio:0:output:dec}
-    assert: |
-      pmio-0-device-output: [17]
+    view: 'pmio-0-device-output: {pmio:0:output:dec}'
+    assert: 'pmio-0-device-output: [17]'
 out_code_binary_hex: |-
   30 60 00 00 08 30 70 00 00 8c 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 70 00 00 32 30 81 00 00 04 41 29 51 30 81 00 00 08 31 02 00 00 01 00 00 02 00 00 03
   30 81 00 00 00 50 09 71
-out_data_binary_hex: |-
-  01 00 00 00 00 00 00 00 02 00 00 00
+out_data_binary_hex: 01 00 00 00 00 00 00 00 02 00 00 00
 out_code_view: |
   000000 - 3060000008 - MOV   dst=A0, src=IMM, operand=0x8
   000005 - 307000008c - MOV   dst=A1, src=IMM, operand=0x8c
@@ -48,5 +52,67 @@ out_code_view: |
   000047 - 5009       - INT   mode=(ST)-
   000049 - 71         - HALT  -
 out_machine: |-
+  Instruction trace:
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x0
+  ...
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 49 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x8c
+  PC: 73 - int: True - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x8c
+  PC: 73 - int: False - IRET  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x8c
+  PC: 73 - int: False - HALT  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x8c
+  PC: 73 - int: False - HALT  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x8c
+  PC: 73 - int: False - HALT  -
+  D0: 0x11 - D1: 0x1 - D2: 0x0 - A0: 0x8 - A1: 0x8c
   Check results:
   pmio-0-device-output: [17]

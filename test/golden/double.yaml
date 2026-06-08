@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ Демонстрация арифметики двойной точности для двух 32-битных машинных слов
   \ Складываем:
   \   A = 0x00000001_FFFFFFF6
@@ -98,13 +98,18 @@ in_simulation_conf: |
   limit: 100000
   memory_size: 256
   result:
+  - name: Instruction trace
+    slice: all
+    head: 15
+    tail: 15
+    view: |-
+      PC: {PC:dec} - int: {DI:bool} - {instruction:str}
+      D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
   - name: Check results
     slice: last
-    view: |
-      pmio-0-device-output: {pmio:0:output:sym}
-    assert: |
-      pmio-0-device-output: "0x00000004_0000000A"
-out_code_binary_hex: |- 
+    view: 'pmio-0-device-output: {pmio:0:output:sym}'
+    assert: 'pmio-0-device-output: "0x00000004_0000000A"'
+out_code_binary_hex: |-
   30 60 00 00 54 30 70 00 00 d8 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 70 00 00 32 30 81 00 00 40 41 29 51 70 00 00 3e 30 81 00 00 00 50 09 62 70 00 00 89
   30 80 00 00 38 30 2a 00 00 00 30 81 00 00 44 22 92 72 09 00 00 72 30 80 00 00 38 30 2a 00 00 00 30
@@ -124,7 +129,7 @@ out_code_binary_hex: |-
   00 00 34 30 2a 00 00 00 01 92 30 80 00 00 2c 30 a9 00 00 00 62 60 00 00 01 89 30 81 00 00 48 60 00
   00 00 36 30 81 00 00 50 60 00 00 00 36 30 80 00 00 2c 30 2a 00 00 00 60 00 00 00 fc 30 81 00 00 54
   60 00 00 00 36 30 80 00 00 30 30 2a 00 00 00 60 00 00 00 fc 71
-out_data_binary_hex: |- 
+out_data_binary_hex: |-
   01 00 00 00 f6 ff ff ff 02 00 00 00 14 00 00 00 00 00 00 10 00 00 00 01 00 00 10 00 00 00 01 00 00
   10 00 00 00 01 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 0a 00 00 00 30 00 00 00 37 00 00 00 78 00 00 00 5f 00 00 00
@@ -274,5 +279,67 @@ out_code_view: |
   000261 - 60000000fc - CALL  mode=IMM, target=0xfc
   000266 - 71         - HALT  -
 out_machine: |-
+  Instruction trace:
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x54
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x54
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x54
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x54 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x54
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x54 - A1: 0x0
+  ...
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - RET   -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - HALT  -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - HALT  -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
+  PC: 614 - int: False - HALT  -
+  D0: 0x0 - D1: 0xa - D2: 0x3c - A0: 0x54 - A1: 0xd8
   Check results:
   pmio-0-device-output: "0x00000004_0000000A"

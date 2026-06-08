@@ -2484,7 +2484,7 @@ class Logger:
                     body_parts: list[str] = []
                     if log_config.head is not None:
                         body_parts.append("\n".join(self._logs[log_config.name][:log_config.head]))
-                    body_parts.append("...\n")
+                    body_parts.append("\n...\n")
                     if log_config.tail is not None:
                         body_parts.append("\n".join(self._logs[log_config.name][-log_config.tail:]))
                     body_out = "".join(body_parts)

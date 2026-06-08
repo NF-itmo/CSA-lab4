@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ Наибольший палиндром, представисый в виде произведения 3-значных чисел
   \
   \ Оптимизации:
@@ -115,12 +115,17 @@ in_simulation_conf: |
   limit: 4000000
   memory_size: 256
   result:
+  - name: Instruction trace
+    slice: all
+    head: 15
+    tail: 15
+    view: |-
+      PC: {PC:dec} - int: {DI:bool} - {instruction:str}
+      D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
   - name: Check results
     slice: last
-    view: |
-      pmio-0-device-output: {pmio:0:output:sym}
-    assert: |
-      pmio-0-device-output: "906609"
+    view: 'pmio-0-device-output: {pmio:0:output:sym}'
+    assert: 'pmio-0-device-output: "906609"'
 out_code_binary_hex: |-
   30 60 00 00 58 30 70 00 00 dc 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 70 00 00 32 30 81 00 00 50 41 29 51 70 00 01 44 30 80 00 00 24 30 2a 00 00 00 30 81
@@ -151,7 +156,7 @@ out_code_binary_hex: |-
   b7 60 00 00 00 36 60 00 00 01 48 30 80 00 00 44 30 2a 00 00 00 72 09 00 03 87 30 81 00 00 54 30 80
   00 00 24 30 a9 00 00 00 70 00 03 a2 30 80 00 00 24 30 2a 00 00 00 30 81 00 00 00 02 92 30 80 00 00
   24 30 a9 00 00 00 30 80 00 00 24 30 2a 00 00 00 30 81 00 00 54 21 92 70 00 03 56 60 00 00 02 c8 71
-out_data_binary_hex: |- 
+out_data_binary_hex: |-
   01 00 00 00 e7 03 00 00 de 03 00 00 e8 03 00 00 64 00 00 00 0b 00 00 00 0a 00 00 00 a0 86 01 00 10
   27 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 63 00 00 00 30 00 00 00
@@ -377,5 +382,67 @@ out_code_view: |
   0003b7 - 60000002c8 - CALL  mode=IMM, target=0x2c8
   0003bc - 71         - HALT  -
 out_machine: |-
+  Instruction trace:
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x58
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x58
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x58
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x58
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0x0
+  ...
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - RET   -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - HALT  -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - HALT  -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
+  PC: 956 - int: False - HALT  -
+  D0: 0x39 - D1: 0x0 - D2: 0x0 - A0: 0x58 - A1: 0xdc
   Check results:
   pmio-0-device-output: "906609"

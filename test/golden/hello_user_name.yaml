@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ Диалог через внешние прерывания:
   \ > What is your name?
   \ < Alice
@@ -82,17 +82,24 @@ in_simulation_conf: |
     - - 900
       - e
     - - 1050
-      - 0x0
+      - 0
   result:
+  - name: Instruction trace
+    slice: all
+    head: 15
+    tail: 15
+    view: |-
+      PC: {PC:dec} - int: {DI:bool} - {instruction:str}
+      D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
   - name: Check results
     slice: last
-    view: |
+    view: |-
       pmio-0-device-input: {pmio:0:input:sym}
       pmio-0-device-output: {pmio:0:output:sym}
-    assert: |
+    assert: |-
       pmio-0-device-input: ""
       pmio-0-device-output: "What is your name?Hello, Alice!"
-out_code_binary_hex: |- 
+out_code_binary_hex: |-
   30 60 00 00 64 30 70 00 00 e8 70 00 00 26 00 00 48 00 00 9e 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 30 80 00 00 32 30 80 00 00 5a 30 a9 00 00 00 30 81 00 00 16 30 80 00 00 5e 30 a9 00
   00 00 70 00 00 9a 30 82 00 00 00 72 09 00 00 7b 30 80 00 00 5a 30 2a 00 00 00 30 a9 00 00 00 30 80
@@ -189,6 +196,68 @@ out_code_view: |
   000146 - 60000000aa - CALL  mode=IMM, target=0xaa
   00014b - 71         - HALT  -
 out_machine: |-
+  Instruction trace:
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x64
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0x0
+  ...
+  PC: 175 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 175 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 175 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 175 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x68 - A1: 0xec
+  PC: 175 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 237 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 237 - int: False - JZ    mode=(ST)-, target=0xed
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 237 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 237 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xec
+  PC: 237 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 331 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 331 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 331 - int: False - HALT  -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 331 - int: False - HALT  -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
+  PC: 331 - int: False - HALT  -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x64 - A1: 0xe8
   Check results:
   pmio-0-device-input: ""
   pmio-0-device-output: "What is your name?Hello, Alice!"

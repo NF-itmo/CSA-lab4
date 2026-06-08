@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ Эхо через внешнее IRQ:
   \ устройство 0 поднимает IRQ, значение приходит на стек в interruption_0
   \ если значение != 0 -> тут же отправляем обратно в устройство 0
@@ -44,81 +44,21 @@ in_simulation_conf: |
     - - 470
       - m
     - - 530
-      - 0x0
+      - 0
   result:
-  - name: Trace demo
+  - name: Instruction trace
     slice: all
-    head: 10
-    tail: 10
-    view: |
+    head: 15
+    tail: 15
+    view: |-
       PC: {PC:dec} - int: {DI:bool} - {instruction:str}
       D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
-    assert: |
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
-      PC: 0 - int: False - NOP   -
-      D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-      ...
-      PC: 146 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x24
-
-      PC: 146 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x24
-
-      PC: 146 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x24
-
-      PC: 146 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x24
-
-      PC: 146 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x23
-
-      PC: 152 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x23
-
-      PC: 152 - int: False - RET   -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x23
-
-      PC: 152 - int: False - HALT  -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x23
-
-      PC: 152 - int: False - HALT  -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x23
-
-      PC: 152 - int: False - HALT  -
-      D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x3 - A1: 0x23
   - name: Check results
     slice: last
-    view: |
+    view: |-
       pmio-0-device-input: {pmio:0:input:sym}
       pmio-0-device-output: {pmio:0:output:sym}
-    assert: |
+    assert: |-
       pmio-0-device-input: ""
       pmio-0-device-output: "Lorem"
 out_code_binary_hex: |-
@@ -127,8 +67,7 @@ out_code_binary_hex: |-
   4e 30 81 00 00 04 41 29 70 00 00 62 30 92 00 00 00 30 81 00 00 08 30 80 00 00 00 30 a9 00 00 00 51
   70 00 00 93 30 81 00 00 08 72 09 00 00 92 30 80 00 00 00 30 2a 00 00 00 72 09 00 00 89 30 81 00 00
   04 70 00 00 8e 30 81 00 00 08 70 00 00 6c 62 60 00 00 00 67 71
-out_data_binary_hex: |-
-  00 00 00 00 00 00 00 00 01 00 00 00
+out_data_binary_hex: 00 00 00 00 00 00 00 00 01 00 00 00
 out_code_view: |
   000000 - 3060000008 - MOV   dst=A0, src=IMM, operand=0x8
   000005 - 307000008c - MOV   dst=A1, src=IMM, operand=0x8c
@@ -169,69 +108,68 @@ out_code_view: |
   000093 - 6000000067 - CALL  mode=IMM, target=0x67
   000098 - 71         - HALT  -
 out_machine: |-
-  Trace demo:
+  Instruction trace:
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
-
   PC: 0 - int: False - NOP   -
   D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x8
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x0
   ...
   PC: 146 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
-
   PC: 146 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
-
   PC: 146 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
-
   PC: 146 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
-
+  PC: 146 - int: False - RET   -
+  D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 146 - int: False - RET   -
+  D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 146 - int: False - RET   -
+  D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 146 - int: False - RET   -
+  D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
+  PC: 146 - int: False - RET   -
+  D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x90
   PC: 146 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x8c
-
   PC: 152 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x8c
-
   PC: 152 - int: False - RET   -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x8c
-
   PC: 152 - int: False - HALT  -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x8c
-
   PC: 152 - int: False - HALT  -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x8c
-
   PC: 152 - int: False - HALT  -
   D0: 0x1 - D1: 0x0 - D2: 0x0 - A0: 0x8 - A1: 0x8c
-
   Check results:
   pmio-0-device-input: ""
   pmio-0-device-output: "Lorem"
-
-  ASSERTION FAI

@@ -47,4 +47,4 @@ def test_translator_and_machine(golden: dict[str, str], caplog: pytest.LogCaptur
     finally:
         print(sim_obj.logs)
     
-    assert sim_obj.logs[1:-1] == golden["out_machine"]
+    assert sim_obj.logs[1:] == golden["out_machine"]

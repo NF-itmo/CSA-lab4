@@ -1,4 +1,4 @@
-in_src: |
+in_src: |-
   \ Печать Hello World через программное прерывание
   1 constant INT_PUTC
   0 constant OUT_PORT
@@ -31,20 +31,24 @@ in_simulation_conf: |
   limit: 100000
   memory_size: 256
   result:
+  - name: Instruction trace
+    slice: all
+    head: 15
+    tail: 15
+    view: |-
+      PC: {PC:dec} - int: {DI:bool} - {instruction:str}
+      D0: {D0:hex} - D1: {D1:hex} - D2: {D2:hex} - A0: {A0:hex} - A1: {A1:hex}
   - name: Check results
     slice: last
-    view: |
-      pmio-0-device-output: {pmio:0:output:sym}
-    assert: |
-      pmio-0-device-output: "Hello World!"
+    view: 'pmio-0-device-output: {pmio:0:output:sym}'
+    assert: 'pmio-0-device-output: "Hello World!"'
 out_code_binary_hex: |-
   30 60 00 00 18 30 70 00 00 9c 70 00 00 26 00 00 00 00 00 7d 00 00 00 00 00 00 00 00 00 00 00 00 00
   00 00 00 00 00 70 00 00 6e 30 81 00 00 00 72 09 00 00 6d 30 82 00 00 00 30 2a 00 00 00 30 82 00 00
   00 72 09 00 00 5a 30 81 00 00 00 50 09 05 02 30 81 00 00 00 70 00 00 69 30 92 00 00 00 30 92 00 00
   00 30 81 00 00 04 70 00 00 2f 62 30 81 00 00 18 60 00 00 00 2a 71 70 00 00 85 30 81 00 00 04 41 29
   51
-out_data_binary_hex: |-
-  01 00 00 00 00 00 00 00 48 65 6c 6c 6f 20 57 6f 72 6c 64 21 00 00 00 00 08 00 00 00
+out_data_binary_hex: 01 00 00 00 00 00 00 00 48 65 6c 6c 6f 20 57 6f 72 6c 64 21 00 00 00 00 08 00 00 00
 out_code_view: |
   000000 - 3060000018 - MOV   dst=A0, src=IMM, operand=0x18
   000005 - 307000009c - MOV   dst=A1, src=IMM, operand=0x9c
@@ -82,5 +86,67 @@ out_code_view: |
   000082 - 4129       - OUT   device=(ST), value=(ST)-
   000084 - 51         - IRET  -
 out_machine: |-
+  Instruction trace:
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - NOP   -
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x18
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 0 - int: False - MOV   dst=A0, src=IMM, operand=0x18
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x0 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x18
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x0
+  PC: 5 - int: False - MOV   dst=A0, src=IMM, operand=0x18
+  D0: 0x0 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x0
+  ...
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0xa0
+  PC: 109 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x9c
+  PC: 120 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x9c
+  PC: 120 - int: False - RET   -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x9c
+  PC: 120 - int: False - HALT  -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x9c
+  PC: 120 - int: False - HALT  -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x9c
+  PC: 120 - int: False - HALT  -
+  D0: 0x21 - D1: 0x0 - D2: 0x0 - A0: 0x18 - A1: 0x9c
   Check results:
   pmio-0-device-output: "Hello World!"
