@@ -34,19 +34,6 @@
 - [Модель процессора](#модель-процессора)
 - [Тестирование](#тестирование)
 
-# Краткая сводка
-
-| Параметр | Значение |
-|---|---|
-| Архитектура | Harvard: отдельные `CodeMemory` и `DataMemory` |
-| Управление | Hardwired CU2, микрооперации явно расписаны в `CU2.tick` |
-| Представление кода | Binary, big-endian, инструкции переменной длины |
-| Стек данных | В `DataMemory`; `A0/DSP` указывает на текущую вершину стека |
-| Return stack | В `DataMemory`, указатель `A1/RSP` |
-| Ввод-вывод | PMIO через `AddressDecoder -> CS`, ввод инициируется внешним IRQ |
-| Прерывания | Общий `irq`, поиск источника перебором `DevicesIrqMux`, запрет вложенности через `DI` |
-| Кэш | Отдельный кэш перед каждой памятью, N-way set associative, LRU |
-
 # Quick start
 ## Prepare
 ```bash
@@ -347,8 +334,8 @@ Data stack представлен в памяти: `A0` указывает на 
 |---|---|
 | Размещение | Отдельные `CodeCache` и `DataCache`, каждый над своей памятью |
 | Размер линии | `CACHE_LINE_SIZE_BYTES = 16` байт |
-| Число линий | `CACHE_LINE_COUNT` |
-| Ассоциативность | `CACHE_WAY_COUNT`-way set associative |
+| Число линий | `CACHE_LINE_COUNT = 16` |
+| Ассоциативность | `CACHE_WAY_COUNT = 4`-way set associative |
 | Вытеснение | LRU внутри набора |
 | Write hit | Write-back: обновляется линия, выставляется `dirty` |
 | Write miss | No-write-allocate: запись сразу в нижнюю память |
