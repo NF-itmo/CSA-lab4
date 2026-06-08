@@ -21,14 +21,14 @@ in_simulation_conf: |
     assert: |
       pmio-0-device-output: [17]
 out_code_binary_hex: |-
-  30 60 00 00 02 30 70 00 00 23 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
-  00 00 00 00 00 70 00 00 32 30 81 00 00 01 41 29 51 30 81 00 00 02 31 02 00 00 01 00 00 02 00 00 03
+  30 60 00 00 08 30 70 00 00 8c 70 00 00 26 00 00 00 00 00 2a 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 70 00 00 32 30 81 00 00 04 41 29 51 30 81 00 00 08 31 02 00 00 01 00 00 02 00 00 03
   30 81 00 00 00 50 09 71
 out_data_binary_hex: |-
-  00 00 00 01 00 00 00 00 00 00 00 02
+  01 00 00 00 00 00 00 00 02 00 00 00
 out_code_view: |
-  000000 - 3060000002 - MOV   dst=A0, src=IMM, operand=0x2
-  000005 - 3070000023 - MOV   dst=A1, src=IMM, operand=0x23
+  000000 - 3060000008 - MOV   dst=A0, src=IMM, operand=0x8
+  000005 - 307000008c - MOV   dst=A1, src=IMM, operand=0x8c
   00000a - 70000026   - JMP   0x26
   00000e - 000000     - VEC0  0x0
   000011 - 00002a     - VEC1  0x2a
@@ -39,12 +39,12 @@ out_code_view: |
   000020 - 000000     - VEC6  0x0
   000023 - 000000     - VEC7  0x0
   000026 - 70000032   - JMP   0x32
-  00002a - 3081000001 - MOV   dst=+(ST), src=MEM, operand=0x1
+  00002a - 3081000004 - MOV   dst=+(ST), src=MEM, operand=0x4, mem[0x4]=0
   00002f - 4129       - OUT   device=(ST), value=(ST)-
   000031 - 51         - IRET  -
-  000032 - 3081000002 - MOV   dst=+(ST), src=MEM, operand=0x2
+  000032 - 3081000008 - MOV   dst=+(ST), src=MEM, operand=0x8, mem[0x8]=2
   000037 - 3102000001000002000003 - POLY  degree=2, coeffs=[1, 2, 3]
-  000042 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0
+  000042 - 3081000000 - MOV   dst=+(ST), src=MEM, operand=0x0, mem[0x0]=1
   000047 - 5009       - INT   mode=(ST)-
   000049 - 71         - HALT  -
 out_machine: |-

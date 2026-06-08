@@ -7,7 +7,7 @@ except ImportError:
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Literal
 import argparse
 import yaml
 import re
@@ -278,6 +278,8 @@ class ALU(Component):
     OP_GT     = 0b0111
     OP_LT     = 0b1000
     OP_PASS_A = 0b1001
+    OP_ADD_WORD = 0b1010
+    OP_SUB_WORD = 0b1011
 
     def __init__(self) -> None:
         super().__init__("ALU", is_instant=True)
@@ -316,6 +318,10 @@ class ALU(Component):
             result = 1 if a < b else 0
         elif op == self.OP_PASS_A:
             result = a
+        elif op == self.OP_ADD_WORD:
+            result = to_i32(a + General.DATA_WORD_SIZE)
+        elif op == self.OP_SUB_WORD:
+            result = to_i32(a - General.DATA_WORD_SIZE)
         else:
             raise ValueError(f"Unknown ALU operation: {op}")
 
@@ -350,7 +356,7 @@ class CodeMemory(Component):
 
 
 class DataMemory(Component):
-    """Память данных: словный доступ по адресу слова (addr), read/write через latch/is_write."""
+    """Byte-addressed data memory with 32-bit little-endian word access."""
 
     def __init__(self) -> None:
         super().__init__("DataMem")
@@ -359,31 +365,35 @@ class DataMemory(Component):
         self.is_write = Socket(self, "is_write", is_input=True)
         self.input = Socket(self, "input", is_input=True)
         self.output = Socket(self, "output", is_output=True)
-        self._data: list[int] = []
+        self._data = bytearray()
 
     def load(self, data: bytes) -> None:
-        self._data = []
-        for idx in range(0, len(data), General.DATA_WORD_SIZE):
-            chunk = data[idx:idx + General.DATA_WORD_SIZE]
-            if len(chunk) < General.DATA_WORD_SIZE:
-                chunk = chunk.rjust(General.DATA_WORD_SIZE, b"\x00")
-            self._data.append(int.from_bytes(chunk, byteorder="big"))
+        self._data = bytearray(data)
 
     @property
     def size(self) -> int:
         return len(self._data)
 
+    def _ensure_size(self, size: int) -> None:
+        if size > len(self._data):
+            self._data.extend(b"\x00" * (size - len(self._data)))
+
     def tick(self) -> None:
         if self.latch.value == 1:
+            addr = self.addr.value
             if self.is_write.value == 1:
-                while self.addr.value >= len(self._data):
-                    self._data.append(0)
-                self._data[self.addr.value] = self.input.value & General.DATA_WORD_MASK
+                self._ensure_size(addr + General.DATA_WORD_SIZE)
+                raw = (self.input.value & General.DATA_WORD_MASK).to_bytes(
+                    General.DATA_WORD_SIZE,
+                    byteorder="little",
+                )
+                self._data[addr:addr + General.DATA_WORD_SIZE] = raw
             else:
-                if self.addr.value >= len(self._data):
-                    self.output.set(0)
-                    return
-                self.output.set(self._data[self.addr.value])
+                raw = bytes(self._data[addr:addr + General.DATA_WORD_SIZE]).ljust(
+                    General.DATA_WORD_SIZE,
+                    b"\x00",
+                )
+                self.output.set(int.from_bytes(raw, byteorder="little"))
 
 
 @dataclass
@@ -494,6 +504,9 @@ class Cache(Component):
         if is_hit:
             self._hit_count += 1
 
+    def _byteorder(self) -> Literal["big", "little"]:
+        return "little" if isinstance(self._storage, DataMemory) else "big"
+
     def _line_base(self, byte_addr: int) -> int:
         return (byte_addr // self._line_size) * self._line_size
 
@@ -569,15 +582,11 @@ class Cache(Component):
                 raw.append((raw_word >> shift) & 0xFF)  # Берём старший байт окна = byte[cur_byte_addr]
                 continue
 
-            word_addr = cur_byte_addr // General.DATA_WORD_SIZE
-            byte_idx = cur_byte_addr % General.DATA_WORD_SIZE
-            self._storage.addr.set(word_addr)         # Подаём адрес слова в DataMemory
-            self._storage.is_write.set(0)             # Ставим режим чтения DataMemory
-            self._storage.latch.set(1)                # Открываем latch DataMemory
-            self._storage.tick()                      # Тикаем память данных
-            word_raw = self._storage.output.value     # Считываем слово
-            shift = (General.DATA_WORD_SIZE - 1 - byte_idx) * 8
-            raw.append((word_raw >> shift) & 0xFF)    # Берём нужный байт из слова
+            self._storage.addr.set(cur_byte_addr)     # DataMemory is byte-addressed.
+            self._storage.is_write.set(0)
+            self._storage.latch.set(1)
+            self._storage.tick()
+            raw.append(self._storage.output.value & 0xFF)
 
         return bytes(raw)
 
@@ -588,20 +597,16 @@ class Cache(Component):
 
         for offset, value in enumerate(values):
             cur_byte_addr = start_byte_addr + offset
-            word_addr = cur_byte_addr // General.DATA_WORD_SIZE
-            byte_idx = cur_byte_addr % General.DATA_WORD_SIZE
 
-            self._storage.addr.set(word_addr)         # Подаём адрес слова в DataMemory
+            self._storage.addr.set(cur_byte_addr)     # DataMemory is byte-addressed.
             self._storage.is_write.set(0)             # Переводим DataMemory в чтение
             self._storage.latch.set(1)                # Открываем latch DataMemory
             self._storage.tick()                      # Тикаем DataMemory для получения слова
             current_word = self._storage.output.value
 
-            shift = (General.DATA_WORD_SIZE - 1 - byte_idx) * 8
-            mask = 0xFF << shift
-            updated_word = (current_word & ~mask) | ((value & 0xFF) << shift)
+            updated_word = (current_word & ~0xFF) | (value & 0xFF)
 
-            self._storage.addr.set(word_addr)         # Подаём адрес слова в DataMemory
+            self._storage.addr.set(cur_byte_addr)
             self._storage.input.set(updated_word)     # Подаём обновлённое слово в DataMemory
             self._storage.is_write.set(1)             # Переводим DataMemory в запись
             self._storage.latch.set(1)                # Открываем latch DataMemory
@@ -657,13 +662,13 @@ class Cache(Component):
 
         if mode == "read":
             raw = self._read_bytes_from_cache(byte_addr, self._read_size)
-            self.output.set(int.from_bytes(raw, byteorder="big"))
+            self.output.set(int.from_bytes(raw, byteorder=self._byteorder()))
             self._last_served_read_addr = byte_addr
         elif mode == "write_hit_alloc":
             self._write_bytes_to_cache(byte_addr, value_raw)
         elif mode == "bypass_read":
             raw = self._backend_read_block(byte_addr, self._read_size)
-            self.output.set(int.from_bytes(raw, byteorder="big"))
+            self.output.set(int.from_bytes(raw, byteorder=self._byteorder()))
             self._last_served_read_addr = byte_addr
         elif mode == "bypass_write":
             self._backend_write_block(byte_addr, value_raw)
@@ -699,7 +704,7 @@ class Cache(Component):
 
         value_mask = (1 << (self._read_size * 8)) - 1
         value = self.input.value & value_mask
-        value_raw = value.to_bytes(self._read_size, byteorder="big")
+        value_raw = value.to_bytes(self._read_size, byteorder=self._byteorder())
         self._record_access(False)
         self._start_pending("bypass_write", byte_addr, value_raw, [])
 
@@ -740,14 +745,14 @@ class Cache(Component):
                 return
 
             raw = self._read_bytes_from_cache(byte_addr, self._read_size)
-            self.output.set(int.from_bytes(raw, byteorder="big"))
+            self.output.set(int.from_bytes(raw, byteorder=self._byteorder()))
             self._last_served_read_addr = byte_addr
             return
 
         self._last_served_read_addr = None
         value_mask = (1 << (self._read_size * 8)) - 1
         value = self.input.value & value_mask
-        value_raw = value.to_bytes(self._read_size, byteorder="big")
+        value_raw = value.to_bytes(self._read_size, byteorder=self._byteorder())
         missing = self._missing_line_bases(byte_addr, self._read_size)
         self._record_access(len(missing) == 0)
 
@@ -1085,6 +1090,14 @@ class CU2(Component):
         self._machine.alu_left_mux.sel.set(reg_idx)
         self._machine.alu.operation.set(self._machine.alu.OP_DEC)
 
+    def _alu_inc_word(self, reg_idx: int) -> None:
+        self._machine.alu_left_mux.sel.set(reg_idx)
+        self._machine.alu.operation.set(self._machine.alu.OP_ADD_WORD)
+
+    def _alu_dec_word(self, reg_idx: int) -> None:
+        self._machine.alu_left_mux.sel.set(reg_idx)
+        self._machine.alu.operation.set(self._machine.alu.OP_SUB_WORD)
+
     def _select_reg_from_alu(self) -> None:
         self._machine.write_to_reg_mux.sel.set(0)
 
@@ -1146,12 +1159,12 @@ class CU2(Component):
         self._setup_write_data_from_bypass_to_alu_addr(reg_idx)
 
     def _setup_write_bypass_to_stack_next(self, reg_idx: int) -> None:
-        self._alu_inc(3)
+        self._alu_inc_word(3)
         self._select_reg_from_alu()
         self._setup_write_data_from_bypass_to_alu_addr(reg_idx)
 
     def _setup_write_arg_to_stack_next(self) -> None:
-        self._alu_inc(3)
+        self._alu_inc_word(3)
         self._select_reg_from_alu()
         self._setup_write_arg_to_alu_addr()
 
@@ -1221,7 +1234,7 @@ class CU2(Component):
             self._setup_write_return_to_rsp(0)
             self._next_step()
         elif service_step == 6:
-            self._alu_inc(4)
+            self._alu_inc_word(4)
             self._select_reg_from_alu()
             self._setup_pc_direct(vector_addr)
             self._next_step()
@@ -1556,7 +1569,7 @@ class CU2(Component):
                     self._machine.d2.unlock()
                     self._next_step()
                 elif step == 4:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._next_step()
                 elif step == 5:
@@ -1576,7 +1589,7 @@ class CU2(Component):
                     self._setup_write_data_from_bypass_to_alu_addr(0)
                     self._next_step()
                 elif step == 10:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._setup_pc_plus(instr_size)
                     self._next_step()
@@ -1588,7 +1601,7 @@ class CU2(Component):
 
             if dst_mode == AddressingMode.ST_DEC and src_mode == AddressingMode.STI:
                 if step == 1:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._setup_pc_plus(instr_size)
                     self._next_step()
@@ -1631,7 +1644,7 @@ class CU2(Component):
                     self._setup_write_data_from_bypass_to_direct_addr(operand, 2)
                     self._next_step()
                 elif step == 5:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._setup_pc_plus(instr_size)
                     self._next_step()
@@ -1678,7 +1691,7 @@ class CU2(Component):
                         self._next_step()
                 elif step == 4:
                     if src_mode == AddressingMode.ST_DEC:
-                        self._alu_dec(3)
+                        self._alu_dec_word(3)
                         self._select_reg_from_alu()
                         self._setup_pc_plus(instr_size)
                         self._next_step()
@@ -1701,7 +1714,7 @@ class CU2(Component):
                     self._setup_write_return_to_rsp(instr_size)
                     self._next_step()
                 elif step == 2:
-                    self._alu_inc(4)
+                    self._alu_inc_word(4)
                     self._select_reg_from_alu()
                     self._setup_pc_mode_arg()
                     self._next_step()
@@ -1722,7 +1735,7 @@ class CU2(Component):
                     self._machine.d2.unlock()
                     self._next_step()
                 elif step == 4:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._next_step()
                 elif step == 5:
@@ -1730,7 +1743,7 @@ class CU2(Component):
                     self._setup_write_return_to_rsp(instr_size)
                     self._next_step()
                 elif step == 6:
-                    self._alu_inc(4)
+                    self._alu_inc_word(4)
                     self._select_reg_from_alu()
                     self._next_step()
                 elif step == 7:
@@ -1747,7 +1760,7 @@ class CU2(Component):
 
         if opcode in {Opcode.RET, Opcode.IRET}:
             if step == 1:
-                self._alu_dec(4)
+                self._alu_dec_word(4)
                 self._setup_read_data_from_alu_addr()
                 self._select_reg_from_alu()
                 self._next_step()
@@ -1776,7 +1789,7 @@ class CU2(Component):
                 self._machine.d2.unlock()
                 self._next_step()
             elif step == 4:
-                self._alu_dec(3)
+                self._alu_dec_word(3)
                 self._select_reg_from_alu()
                 self._next_step()
             elif step == 5:
@@ -1788,7 +1801,7 @@ class CU2(Component):
                 if not 0 <= int_number < General.INTERRUPT_COUNT:
                     raise RuntimeError(f"Interrupt number out of range: {int_number}")
                 vector_addr = self._machine.interrupt_vector_base + (int_number * General.INTERRUT_SIZE)
-                self._alu_inc(4)
+                self._alu_inc_word(4)
                 self._select_reg_from_alu()
                 self._setup_pc_direct(vector_addr)
                 self._next_step()
@@ -1829,7 +1842,7 @@ class CU2(Component):
                     self._machine.d0.unlock()
                     self._next_step()
                 elif step == 4:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._next_step()
                 elif step == 5:
@@ -1896,7 +1909,7 @@ class CU2(Component):
                     self._machine.d2.unlock()
                     self._next_step()
                 elif step == 4:
-                    self._alu_dec(3)
+                    self._alu_dec_word(3)
                     self._select_reg_from_alu()
                     self._next_step()
                 elif step == 5:
@@ -2007,7 +2020,7 @@ class CU2(Component):
                 self._machine.d2.unlock()
                 self._next_step()
             elif step == 4:
-                self._alu_dec(3)
+                self._alu_dec_word(3)
                 self._select_reg_from_alu()
                 self._next_step()
             elif step == 5:
@@ -2032,7 +2045,7 @@ class CU2(Component):
                 self._machine.bypass_mux.sel.set(0)
                 self._next_step()
             elif step == 10:
-                self._alu_dec(3)
+                self._alu_dec_word(3)
                 self._select_reg_from_alu()
                 self._setup_pc_plus(instr_size)
                 self._next_step()
@@ -2234,7 +2247,7 @@ class Machine():
                 "DataCache",
                 self.data_storage,
                 General.DATA_WORD_SIZE,
-                General.DATA_WORD_SIZE,
+                1,
                 True,
                 False,
                 self._cache_enabled,

@@ -17,9 +17,6 @@ except ImportError:
     )
 import argparse
 
-
-DATA_WORD_SIZE = 5
-
 MODE_LABELS = {
     AddressingMode.STI: "(ST)",
     AddressingMode.ST_INC: "+(ST)",
@@ -36,7 +33,7 @@ class Viewer:
     def __init__(self, program: bytes, data: bytes | None = None) -> None:
         self._program = program
         self._ptr = 0
-        self._data_words = self._parse_data_words(data or b"")
+        self._data = data or b""
         self._vectors_printed = False
         self._vector_table_offset = instruction_size(Opcode.MOV) * 2 + instruction_size(
             Opcode.JMP
@@ -49,14 +46,13 @@ class Viewer:
             return file_obj.read()
 
     @staticmethod
-    def _parse_data_words(data: bytes) -> list[int]:
-        if len(data) % DATA_WORD_SIZE != 0:
-            return []
-
-        return [
-            from_bytes(data[offset: offset + DATA_WORD_SIZE])
-            for offset in range(0, len(data), DATA_WORD_SIZE)
-        ]
+    def _data_word_at(data: bytes, addr: int) -> int | None:
+        if addr < 0 or addr + General.DATA_WORD_SIZE > len(data):
+            return None
+        return int.from_bytes(
+            data[addr:addr + General.DATA_WORD_SIZE],
+            byteorder="little",
+        )
 
     def _read_chunk(self, size: int, context: str) -> bytes:
         next_ptr = self._ptr + size
@@ -89,7 +85,7 @@ class Viewer:
         return cls._mode_name((descriptor >> 4) & 0xF), cls._mode_name(descriptor & 0xF)
 
     @staticmethod
-    def format_args(opcode: Opcode, args: list[int], data_words: list[int]) -> str:
+    def format_args(opcode: Opcode, args: list[int], data_words: list[int] | bytes) -> str:
         if not args:
             return "-"
 
@@ -110,8 +106,9 @@ class Viewer:
             dst, src = Viewer._mode_pair_names(args[0])
             src_mode = Viewer._mode(args[0] & 0xF)
             operand = args[1]
-            if src_mode == AddressingMode.MEM and 0 <= operand < len(data_words):
-                return f"dst={dst}, src={src}, operand=0x{operand:x}, mem[0x{operand:x}]={data_words[operand]}"
+            mem_value = Viewer._data_word_at(data_words, operand) if isinstance(data_words, bytes) else None
+            if src_mode == AddressingMode.MEM and mem_value is not None:
+                return f"dst={dst}, src={src}, operand=0x{operand:x}, mem[0x{operand:x}]={mem_value}"
             return f"dst={dst}, src={src}, operand=0x{operand:x}"
 
         if opcode in {Opcode.PLS, Opcode.MIN, Opcode.DIV, Opcode.MUL, Opcode.EQ, Opcode.GT, Opcode.LT} and len(args) == 1:
@@ -157,7 +154,7 @@ class Viewer:
                     hex_view += raw_arg.hex()
                     args.append(from_bytes(raw_arg))
 
-            arg_view = self.format_args(opcode, args, self._data_words)
+            arg_view = self.format_args(opcode, args, self._data)
             self._out += f"{instruction_ptr:06x} - {hex_view:<{General.CODE_WORD_SIZE * 2}} - {opcode.name:<5} {arg_view}\n"
 
             if not self._vectors_printed and self._ptr == self._vector_table_offset:

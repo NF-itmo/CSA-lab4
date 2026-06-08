@@ -186,6 +186,7 @@ class CodeElem:
 class DataElem:
     value: int
     pos: int
+    size: int = General.DATA_WORD_SIZE
 
 
 def instruction_size(opcode: Opcode, first_word: Optional[int] = None) -> int:

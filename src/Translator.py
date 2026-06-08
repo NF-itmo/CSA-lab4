@@ -63,7 +63,7 @@ class AutoPtr[T]:
 
     def __iadd__(self, item: T) -> Self:
         self._collection.append(item)
-        self._ptr += 1
+        self._ptr += getattr(item, "size", 1)
         return self
 
     def __add__(self, other: "AutoPtr[T]") -> None:
@@ -91,7 +91,10 @@ class DataMemory:
         return self.Section.collection
 
     def alloc(
-        self, values: Optional[list[int]] = None, size: Optional[int] = None
+        self,
+        values: Optional[list[int]] = None,
+        size: Optional[int] = None,
+        elem_size: int = General.DATA_WORD_SIZE,
     ) -> int:
         if values is None and size is None:
             raise ValueError("Size or values array must be defined!")
@@ -107,9 +110,10 @@ class DataMemory:
         if values is None:
             values = [0 for _ in range(size)]
 
-        # Забиваем в память
+        # Data memory is byte-addressed; numeric cells still occupy 4 bytes.
         for value in values:
-            self.Section += DataElem(value, current_addr)
+            self.Section += DataElem(value, current_addr, elem_size)
+            current_addr += elem_size
 
         return start_addr
 
@@ -344,6 +348,11 @@ class Translator:
         except ValueError:
             return None
 
+    @staticmethod
+    def _align_data_addr(addr: int) -> int:
+        word = General.DATA_WORD_SIZE
+        return ((addr + word - 1) // word) * word
+
     def _has_tokens(self) -> bool:
         """
         Есть ли ещё токены
@@ -440,7 +449,9 @@ class Translator:
         # if addr is not None:
         #     return addr
 
-        addr = self._data.alloc([ord(char) for char in value] + [0])
+        # Strings are byte strings. Three padding zeros after the terminator let
+        # a 32-bit little-endian load from the terminator address produce 0.
+        addr = self._data.alloc([ord(char) for char in value] + [0, 0, 0, 0], elem_size=1)
         self._string_ptrs[value] = addr
         return addr
 
@@ -847,9 +858,9 @@ class Translator:
         """
         # [MOV A0, IMM][MOV A1, IMM][entry jmp][interrupt vector table][program]
         entry_jmp_target = self._code.entry_prefix_size
-        data_stack_start = max(self._data.ptr, 1)
-        data_stack_initial_top = data_stack_start - 1
-        return_stack_start = data_stack_start + DATA_STACK_DEPTH
+        data_stack_start = max(self._align_data_addr(self._data.ptr), General.DATA_WORD_SIZE)
+        data_stack_initial_top = data_stack_start - General.DATA_WORD_SIZE
+        return_stack_start = data_stack_start + DATA_STACK_DEPTH * General.DATA_WORD_SIZE
 
         code_bin = (
             to_bytes(Opcode.MOV.value, 1)
@@ -898,8 +909,19 @@ class Translator:
             for arg, size in zip(instruction.args, args_sizes):
                 code_bin += to_bytes(arg, size)
 
-        data_bin = b"".join(to_bytes(elem.value, General.DATA_WORD_SIZE) for elem in self._data.collection)
-        return code_bin, data_bin
+        data_bin = bytearray(self._data.ptr)
+        for elem in self._data.collection:
+            if elem.size == 1:
+                raw = bytes([elem.value & 0xFF])
+            elif elem.size == General.DATA_WORD_SIZE:
+                raw = (elem.value & General.DATA_WORD_MASK).to_bytes(
+                    General.DATA_WORD_SIZE,
+                    byteorder="little",
+                )
+            else:
+                raise ValueError(f"Unsupported data element size: {elem.size}")
+            data_bin[elem.pos: elem.pos + elem.size] = raw
+        return code_bin, bytes(data_bin)
 
     def __call__(self) -> tuple[bytes, bytes]:
         self._parse_until()
